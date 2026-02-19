@@ -3,6 +3,7 @@ const cors = require('cors');
 require('./config/db'); 
 const authRoutes = require('./routes/auth.routes');
 const authMiddleware = require('./middleware/auth.middleware');
+const requireRole = require('./middleware/role.middleware');
 
 const app = express();
 
@@ -15,10 +16,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Public routes
-app.get('/', (req, res) => {
-  res.send('Server Working');
-});
+app.get(
+  '/admin-only',
+  authMiddleware,
+  requireRole('admin'),
+  (req, res) => {
+    res.json({ message: 'Admin access granted' });
+  }
+);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
