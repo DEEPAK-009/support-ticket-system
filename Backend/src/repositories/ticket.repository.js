@@ -22,6 +22,34 @@ const createTicket = async (data) => {
   return result.insertId;
 };
 
+// Dynamically builds query based on role
+// Admin sees everything (no WHERE)
+// Sorted newest first
+
+const getTickets = async (user) => {
+  let query = `
+    SELECT * FROM tickets
+  `;
+  let values = [];
+
+  if (user.role === 'user') {
+    query += ` WHERE created_by = ?`;
+    values.push(user.id);
+  }
+
+  if (user.role === 'agent') {
+    query += ` WHERE assigned_to = ?`;
+    values.push(user.id);
+  }
+
+  query += ` ORDER BY updated_at DESC`;
+
+  const [rows] = await pool.query(query, values);
+  return rows;
+};
+
+
 module.exports = {
-  createTicket
+  createTicket,
+  getTickets
 };

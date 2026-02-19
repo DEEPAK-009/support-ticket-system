@@ -17,6 +17,19 @@ const createTicket = async (req, res, next) => {
   }
 };
 
+const getTickets = async (req, res, next) => {
+  try {
+    const user = req.user; // from auth middleware
+    const tickets = await ticketService.getTickets(user);
+
+    res.status(200).json(tickets);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
-  createTicket
+  createTicket,
+  getTickets
 };

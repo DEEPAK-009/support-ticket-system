@@ -27,6 +27,13 @@ const createTicket = async (userId, data) => {
   };
 };
 
+const getTickets = async (user) => {
+  const tickets = await ticketRepository.getTickets(user);
+  return tickets;
+};
+
+
 module.exports = {
-  createTicket
+  createTicket,
+  getTickets
 };

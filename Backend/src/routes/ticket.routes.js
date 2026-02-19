@@ -5,5 +5,7 @@ const ticketController = require('../controllers/ticket.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 
 router.post('/', authMiddleware, ticketController.createTicket);
+router.get('/', authMiddleware, ticketController.getTickets);
+
 
 module.exports = router;
