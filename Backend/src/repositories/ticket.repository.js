@@ -26,27 +26,57 @@ const createTicket = async (data) => {
 // Admin sees everything (no WHERE)
 // Sorted newest first
 
-const getTickets = async (user) => {
-  let query = `
-    SELECT * FROM tickets
-  `;
+const getTickets = async (user, filters) => {
+  let query = `SELECT * FROM tickets`;
+  let conditions = [];
   let values = [];
 
+  // Role-based filtering
   if (user.role === 'user') {
-    query += ` WHERE created_by = ?`;
+    conditions.push('created_by = ?');
     values.push(user.id);
   }
 
   if (user.role === 'agent') {
-    query += ` WHERE assigned_to = ?`;
+    conditions.push('assigned_to = ?');
     values.push(user.id);
   }
 
-  query += ` ORDER BY updated_at DESC`;
+  // Optional filters
+  if (filters.status) {
+    conditions.push('status = ?');
+    values.push(filters.status);
+  }
+
+  if (filters.priority) {
+    conditions.push('priority = ?');
+    values.push(filters.priority);
+  }
+
+  if (filters.category) {
+    conditions.push('category = ?');
+    values.push(filters.category);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY updated_at DESC';
+
+  // Pagination
+  const page = parseInt(filters.page) || 1;
+  const limit = parseInt(filters.limit) || 5;
+  const offset = (page - 1) * limit;
+
+  query += ' LIMIT ? OFFSET ?';
+  values.push(limit, offset);
 
   const [rows] = await pool.query(query, values);
+
   return rows;
 };
+
 
 // Just fetches ticket.
 const getTicketById = async (id) => {

@@ -27,8 +27,8 @@ const createTicket = async (userId, data) => {
   };
 };
 
-const getTickets = async (user) => {
-  const tickets = await ticketRepository.getTickets(user);
+const getTickets = async (user, queryParams) => {
+  const tickets = await ticketRepository.getTickets(user, queryParams);
   return tickets;
 };
 
