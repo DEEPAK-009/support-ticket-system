@@ -58,8 +58,40 @@ const getTicketById = async (id) => {
   return rows[0];
 };
 
+const updateTicketStatus = async (ticketId, newStatus) => {
+  let extraFields = '';
+  let values = [newStatus];
+
+  if (newStatus === 'Resolved') {
+    extraFields = ', resolved_at = NOW()';
+  }
+
+  if (newStatus === 'Closed') {
+    extraFields = ', closed_at = NOW()';
+  }
+
+  values.push(ticketId);
+
+  await pool.query(
+    `UPDATE tickets 
+     SET status = ? ${extraFields} 
+     WHERE id = ?`,
+    values
+  );
+};
+
+const assignTicket = async (ticketId, agentId) => {
+  await pool.query(
+    `UPDATE tickets SET assigned_to = ? WHERE id = ?`,
+    [agentId, ticketId]
+  );
+};
+
+
 module.exports = {
   createTicket,
   getTickets,
-  getTicketById
+  getTicketById,
+  updateTicketStatus,
+  assignTicket
 };

@@ -42,9 +42,48 @@ const getTicketById = async (req, res, next) => {
 };
 
 
+const updateTicketStatus = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const { status } = req.body;
+    const user = req.user;
+
+    const result = await ticketService.updateTicketStatus(
+      ticketId,
+      status,
+      user
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const assignTicket = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const { agentId } = req.body;
+    const user = req.user;
+
+    const result = await ticketService.assignTicket(
+      ticketId,
+      agentId,
+      user
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
 module.exports = {
   createTicket,
   getTickets,
-  getTicketById
+  getTicketById,
+  updateTicketStatus,
+  assignTicket
 };
