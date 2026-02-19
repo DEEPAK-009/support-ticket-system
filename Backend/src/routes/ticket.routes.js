@@ -6,6 +6,8 @@ const authMiddleware = require('../middleware/auth.middleware');
 
 router.post('/', authMiddleware, ticketController.createTicket);
 router.get('/', authMiddleware, ticketController.getTickets);
+router.get('/:id', authMiddleware, ticketController.getTicketById);
+
 
 
 module.exports = router;

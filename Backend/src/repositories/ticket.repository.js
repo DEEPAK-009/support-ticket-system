@@ -48,8 +48,18 @@ const getTickets = async (user) => {
   return rows;
 };
 
+// Just fetches ticket.
+const getTicketById = async (id) => {
+  const [rows] = await pool.query(
+    `SELECT * FROM tickets WHERE id = ?`,
+    [id]
+  );
+
+  return rows[0];
+};
 
 module.exports = {
   createTicket,
-  getTickets
+  getTickets,
+  getTicketById
 };

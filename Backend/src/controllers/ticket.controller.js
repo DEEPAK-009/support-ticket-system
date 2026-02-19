@@ -28,8 +28,23 @@ const getTickets = async (req, res, next) => {
   }
 };
 
+const getTicketById = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const user = req.user;
+
+    const ticket = await ticketService.getTicketById(ticketId, user);
+
+    res.status(200).json(ticket);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
 module.exports = {
   createTicket,
-  getTickets
+  getTickets,
+  getTicketById
 };
