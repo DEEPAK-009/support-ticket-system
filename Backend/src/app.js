@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth.routes');
 const authMiddleware = require('./middleware/auth.middleware');
 const requireRole = require('./middleware/role.middleware');
 const ticketRoutes = require('./routes/ticket.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -12,6 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res, next) => {
   console.log("Incoming request:", req.method, req.url);
