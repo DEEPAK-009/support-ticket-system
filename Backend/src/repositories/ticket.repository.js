@@ -27,11 +27,11 @@ const createTicket = async (data) => {
 // Sorted newest first
 
 const getTickets = async (user, filters) => {
-  let query = `SELECT * FROM tickets`;
+  let baseQuery = `FROM tickets`;
   let conditions = [];
   let values = [];
 
-  // Role-based filtering
+  // Role filtering
   if (user.role === 'user') {
     conditions.push('created_by = ?');
     values.push(user.id);
@@ -59,22 +59,34 @@ const getTickets = async (user, filters) => {
   }
 
   if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
+    baseQuery += ' WHERE ' + conditions.join(' AND ');
   }
 
-  query += ' ORDER BY updated_at DESC';
+  // Get total count
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as total ${baseQuery}`,
+    values
+  );
+
+  const total = countRows[0].total;
 
   // Pagination
   const page = parseInt(filters.page) || 1;
   const limit = parseInt(filters.limit) || 5;
   const offset = (page - 1) * limit;
 
-  query += ' LIMIT ? OFFSET ?';
-  values.push(limit, offset);
+  const [rows] = await pool.query(
+    `SELECT * ${baseQuery} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+    [...values, limit, offset]
+  );
 
-  const [rows] = await pool.query(query, values);
-
-  return rows;
+  return {
+    data: rows,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  };
 };
 
 
