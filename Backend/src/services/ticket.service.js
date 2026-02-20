@@ -114,7 +114,13 @@ const assignTicket = async (ticketId, agentId, user) => {
     throw new Error('Invalid agent selected');
   }
 
+  // Assign ticket
   await ticketRepository.assignTicket(ticketId, agentId);
+
+  // 🔥 Auto-change status if currently Open
+  if (ticket.status === 'Open') {
+    await ticketRepository.updateTicketStatus(ticketId, 'Assigned');
+  }
 
   return {
     message: 'Ticket assigned successfully'

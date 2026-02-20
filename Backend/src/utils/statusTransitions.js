@@ -1,13 +1,15 @@
 const allowedTransitions = {
   user: {
-    Resolved: ['Closed']
+    Resolved: ['Closed'],
+    'Awaiting User Response': ['In Progress']
   },
   agent: {
-    Open: ['In Progress'],
+    Assigned: ['In Progress'],
     'In Progress': ['Awaiting User Response', 'Resolved']
   },
   admin: {
-    Open: ['In Progress', 'Resolved', 'Closed'],
+    Open: ['Assigned', 'Resolved', 'Closed'],
+    Assigned: ['In Progress', 'Resolved', 'Closed'],
     'In Progress': ['Awaiting User Response', 'Resolved', 'Closed'],
     'Awaiting User Response': ['In Progress', 'Resolved', 'Closed'],
     Resolved: ['Closed']

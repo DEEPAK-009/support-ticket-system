@@ -35,8 +35,18 @@ const updateUserRole = async (req, res, next) => {
   }
 };
 
+const getTicketAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getTicketAnalytics();
+    res.status(200).json(analytics);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
-  updateUserRole
+  updateUserRole,
+  getTicketAnalytics
 };

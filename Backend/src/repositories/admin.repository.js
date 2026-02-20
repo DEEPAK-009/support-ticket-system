@@ -47,9 +47,24 @@ const updateUserRole = async (userId, role) => {
   return result;
 };
 
+const getTicketAnalytics = async () => {
+  const [rows] = await db.execute(`
+    SELECT 
+      COUNT(*) AS totalTickets,
+      SUM(status = 'Open') AS open,
+      SUM(status = 'In Progress') AS inProgress,
+      SUM(status = 'Awaiting User Response') AS awaitingUserResponse,
+      SUM(status = 'Resolved') AS resolved,
+      SUM(status = 'Closed') AS closed
+    FROM tickets
+  `);
+
+  return rows[0];
+};
 
 module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
-  updateUserRole
+  updateUserRole,
+  getTicketAnalytics
 };

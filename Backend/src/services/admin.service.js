@@ -47,9 +47,13 @@ const updateUserRole = async (userId, role) => {
   return { message: "User role updated successfully" };
 };
 
+const getTicketAnalytics = async () => {
+  return await adminRepository.getTicketAnalytics();
+};
 
 module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
-  updateUserRole
+  updateUserRole,
+  getTicketAnalytics
 };
