@@ -1,68 +1,62 @@
-// Inserts a new ticket into DB
-// Returns new ticket ID
-
 const pool = require('../config/db');
 
 const createTicket = async (data) => {
   const {
     title,
     description,
-    category,
+    category_id,
     priority,
     created_by
   } = data;
 
   const [result] = await pool.query(
     `INSERT INTO tickets 
-     (title, description, category, priority, created_by) 
+     (title, description, category_id, priority, created_by) 
      VALUES (?, ?, ?, ?, ?)`,
-    [title, description, category, priority, created_by]
+    [title, description, category_id, priority, created_by]
   );
 
   return result.insertId;
 };
 
-// Dynamically builds query based on role
-// Admin sees everything (no WHERE)
-// Sorted newest first
-
 const getTickets = async (user, filters) => {
-  let baseQuery = `FROM tickets`;
+  let baseQuery = `
+    FROM tickets t
+    LEFT JOIN categories c ON t.category_id = c.id
+  `;
+
   let conditions = [];
   let values = [];
 
-  // Role filtering
   if (user.role === 'user') {
-    conditions.push('created_by = ?');
+    conditions.push('t.created_by = ?');
     values.push(user.id);
   }
 
   if (user.role === 'agent') {
-    conditions.push('assigned_to = ?');
+    conditions.push('t.assigned_to = ?');
     values.push(user.id);
   }
 
-  // Optional filters
   if (filters.status) {
-    conditions.push('status = ?');
+    conditions.push('t.status = ?');
     values.push(filters.status);
   }
 
   if (filters.priority) {
-    conditions.push('priority = ?');
+    conditions.push('t.priority = ?');
     values.push(filters.priority);
   }
 
-  if (filters.category) {
-    conditions.push('category = ?');
-    values.push(filters.category);
+  if (filters.category_id) {
+    conditions.push('t.category_id = ?');
+    values.push(filters.category_id);
   }
 
   if (conditions.length > 0) {
     baseQuery += ' WHERE ' + conditions.join(' AND ');
   }
 
-  // Get total count
   const [countRows] = await pool.query(
     `SELECT COUNT(*) as total ${baseQuery}`,
     values
@@ -70,13 +64,14 @@ const getTickets = async (user, filters) => {
 
   const total = countRows[0].total;
 
-  // Pagination
   const page = parseInt(filters.page) || 1;
   const limit = parseInt(filters.limit) || 5;
   const offset = (page - 1) * limit;
 
   const [rows] = await pool.query(
-    `SELECT * ${baseQuery} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+    `SELECT t.*, c.name AS category_name ${baseQuery}
+     ORDER BY t.updated_at DESC
+     LIMIT ? OFFSET ?`,
     [...values, limit, offset]
   );
 
@@ -89,11 +84,12 @@ const getTickets = async (user, filters) => {
   };
 };
 
-
-// Just fetches ticket.
 const getTicketById = async (id) => {
   const [rows] = await pool.query(
-    `SELECT * FROM tickets WHERE id = ?`,
+    `SELECT t.*, c.name AS category_name
+     FROM tickets t
+     LEFT JOIN categories c ON t.category_id = c.id
+     WHERE t.id = ?`,
     [id]
   );
 
@@ -124,11 +120,12 @@ const updateTicketStatus = async (ticketId, newStatus) => {
 
 const assignTicket = async (ticketId, agentId) => {
   await pool.query(
-    `UPDATE tickets SET assigned_to = ? WHERE id = ?`,
+    `UPDATE tickets 
+     SET assigned_to = ?
+     WHERE id = ?`,
     [agentId, ticketId]
   );
 };
-
 
 module.exports = {
   createTicket,

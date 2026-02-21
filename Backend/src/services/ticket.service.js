@@ -7,16 +7,16 @@
 const ticketRepository = require('../repositories/ticket.repository');
 
 const createTicket = async (userId, data) => {
-  const { title, description, category, priority } = data;
+  const { title, description, category_id, priority } = data;
 
-  if (!title || !description || !category) {
-    throw new Error('Title, description and category are required');
+  if (!title || !description || !category_id) {
+    throw new Error('Title, description and category_id are required');
   }
 
   const ticketId = await ticketRepository.createTicket({
     title,
     description,
-    category,
+    category_id,
     priority: priority || 'Medium',
     created_by: userId
   });
