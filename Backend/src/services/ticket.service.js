@@ -11,7 +11,8 @@ const createTicket = async (userId, data) => {
 
   if (!title || !description || !category_id) {
     throw new Error('Title, description and category_id are required');
-  }
+  } 
+  
 
   const ticketId = await ticketRepository.createTicket({
     title,

@@ -40,7 +40,6 @@ app.get('/protected', authMiddleware, (req, res) => {
   });
 });
 
-// 🔥 Add this HERE
 app.use('/api/auth', authRoutes);
 
 const errorHandler = require('./middleware/error.middleware');
