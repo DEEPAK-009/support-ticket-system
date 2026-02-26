@@ -1,25 +1,19 @@
 import { useContext } from "react";
-import Layout from "../components/Layout";
 import { AuthContext } from "../context/AuthContext";
+import UserDashboard from "./UserDashboard";
+import AgentDashboard from "./AgentDashboard";
+import AdminDashboard from "./AdminDashboard";
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
 
-  return (
-    <Layout>
-      <h1 className="text-2xl font-semibold mb-4">
-        Dashboard
-      </h1>
+  if (!user) return null;
 
-      <p className="text-gray-700">
-        Logged in as: <strong>{user?.full_name}</strong>
-      </p>
+  if (user.role === "user") return <UserDashboard />;
+  if (user.role === "agent") return <AgentDashboard />;
+  if (user.role === "admin") return <AdminDashboard />;
 
-      <p className="text-gray-700">
-        Role: <strong>{user?.role}</strong>
-      </p>
-    </Layout>
-  );
+  return null;
 };
 
 export default Dashboard;
