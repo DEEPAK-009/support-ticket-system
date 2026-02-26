@@ -2,28 +2,38 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getTickets } from "../api/tickets";
 import TicketTable from "../components/TicketTable";
+import FilterBar from "../components/FilterBar";
+import Pagination from "../components/Pagination";
 
 const AdminDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     status: "",
+    priority: "",
+    assigned: "",
+    sort: "created_at",
+    order: "desc",
+    page: 1,
   });
+  
 
   useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const data = await getTickets(filters);
-        setTickets(data.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchTickets = async () => {
+    try {
+      const data = await getTickets(filters);
+      setTickets(data.data);
+      setTotalPages(data.totalPages);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchTickets();
-  }, [filters]);
+  fetchTickets();
+}, [filters]);
 
   return (
     <Layout>
@@ -31,21 +41,7 @@ const AdminDashboard = () => {
         Admin Dashboard
       </h1>
 
-      <div className="flex space-x-4 mb-6">
-      {["", "Open", "Assigned", "In Progress", "Resolved", "Closed"].map((status) => (
-        <button
-          key={status}
-          onClick={() => setFilters({ status })}
-          className={`px-4 py-2 rounded ${
-            filters.status === status
-              ? "bg-black text-white"
-              : "bg-gray-200 text-gray-700"
-          }`}
-        >
-          {status === "" ? "All" : status}
-        </button>
-      ))}
-    </div>
+      <FilterBar filters={filters} setFilters={setFilters} />
 
       {loading ? (
         <p>Loading tickets...</p>
@@ -53,7 +49,16 @@ const AdminDashboard = () => {
         
         <TicketTable tickets={tickets} />
       )}
+
+      <Pagination
+        currentPage={filters.page}
+        totalPages={totalPages}
+        onPageChange={(page) =>
+          setFilters((prev) => ({ ...prev, page }))
+        }
+      />
     </Layout>
+      
   );
 };
 
