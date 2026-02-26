@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 const TicketTable = ({ tickets }) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-white rounded shadow overflow-hidden">
       <table className="w-full text-sm">
@@ -15,7 +18,8 @@ const TicketTable = ({ tickets }) => {
           {tickets.map((ticket) => (
             <tr
               key={ticket.id}
-              className="border-t hover:bg-gray-50"
+              onClick={() => navigate(`/tickets/${ticket.id}`)}
+              className="border-t hover:bg-gray-50 cursor-pointer"
             >
               <td className="p-3">{ticket.id}</td>
               <td className="p-3">{ticket.title}</td>

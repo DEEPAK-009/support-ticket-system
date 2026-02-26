@@ -3,6 +3,7 @@ const FilterBar = ({ filters, setFilters }) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
+      page: 1,
     }));
   };
 
