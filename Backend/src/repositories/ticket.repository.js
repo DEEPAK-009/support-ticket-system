@@ -1,3 +1,4 @@
+
 const pool = require('../config/db');
 
 const createTicket = async (data) => {
@@ -28,13 +29,7 @@ const getTickets = async (user, filters) => {
   let conditions = [];
   let values = [];
 
-  if (user.role === 'user') {
-    conditions.push('t.created_by = ?');
-    values.push(user.id);
-  }
-
-  // 🔥 Assigned filter
-  // Role based visibility
+  // 🔹 ROLE-BASED VISIBILITY
   if (user.role === 'user') {
     conditions.push('t.created_by = ?');
     values.push(user.id);
@@ -45,30 +40,35 @@ const getTickets = async (user, filters) => {
     values.push(user.id);
   }
 
-  // 🔥 Assigned filter (only meaningful for admin)
+  // 🔹 ASSIGNED FILTER (admin only)
   if (filters.assigned === 'unassigned' && user.role === 'admin') {
     conditions.push('t.assigned_to IS NULL');
   }
 
+  // 🔹 STATUS FILTER
   if (filters.status) {
     conditions.push('t.status = ?');
     values.push(filters.status);
   }
 
+  // 🔹 PRIORITY FILTER
   if (filters.priority) {
     conditions.push('t.priority = ?');
     values.push(filters.priority);
   }
 
+  // 🔹 CATEGORY FILTER
   if (filters.category_id) {
     conditions.push('t.category_id = ?');
     values.push(filters.category_id);
   }
 
+  // Apply WHERE clause
   if (conditions.length > 0) {
     baseQuery += ' WHERE ' + conditions.join(' AND ');
   }
 
+  // 🔹 COUNT QUERY (for pagination)
   const [countRows] = await pool.query(
     `SELECT COUNT(*) as total ${baseQuery}`,
     values
@@ -76,40 +76,32 @@ const getTickets = async (user, filters) => {
 
   const total = countRows[0].total;
 
+  // 🔹 PAGINATION
   const page = parseInt(filters.page) || 1;
   const limit = parseInt(filters.limit) || 5;
   const offset = (page - 1) * limit;
 
-  // const [rows] = await pool.query(
-  //   // `SELECT t.*, c.name AS category_name ${baseQuery}
-  //   //  ORDER BY t.updated_at DESC
-  //   //  LIMIT ? OFFSET ?`,
-  //   // [...values, limit, offset]
-    
-  // );
+  // 🔹 SAFE SORTING (whitelisted)
+  const allowedSortFields = [
+    'created_at',
+    'updated_at',
+    'priority',
+    'status'
+  ];
 
-  // 🔥 SAFE SORTING
-const allowedSortFields = [
-  'created_at',
-  'updated_at',
-  'priority',
-  'status'
-];
+  const sortField = allowedSortFields.includes(filters.sort)
+    ? filters.sort
+    : 'updated_at';
 
-let orderBy = 't.updated_at DESC'; // default sorting
+  const order = filters.order === 'asc' ? 'ASC' : 'DESC';
 
-if (filters.sort && allowedSortFields.includes(filters.sort)) {
-  const direction = filters.order === 'desc' ? 'DESC' : 'ASC';
-  orderBy = `t.${filters.sort} ${direction}`;
-}
-
-// Run final query
-const [rows] = await pool.query(
-  `SELECT t.*, c.name AS category_name ${baseQuery}
-   ORDER BY ${orderBy}
-   LIMIT ? OFFSET ?`,
-  [...values, limit, offset]
-);
+  // 🔹 FINAL QUERY
+  const [rows] = await pool.query(
+    `SELECT t.*, c.name AS category_name ${baseQuery}
+     ORDER BY t.${sortField} ${order}
+     LIMIT ? OFFSET ?`,
+    [...values, limit, offset]
+  );
 
   return {
     data: rows,
@@ -162,7 +154,6 @@ const assignTicket = async (ticketId, agentId) => {
     [agentId, ticketId]
   );
 };
-
 
 module.exports = {
   createTicket,
