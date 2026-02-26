@@ -33,9 +33,21 @@ const getTickets = async (user, filters) => {
     values.push(user.id);
   }
 
+  // 🔥 Assigned filter
+  // Role based visibility
+  if (user.role === 'user') {
+    conditions.push('t.created_by = ?');
+    values.push(user.id);
+  }
+
   if (user.role === 'agent') {
     conditions.push('t.assigned_to = ?');
     values.push(user.id);
+  }
+
+  // 🔥 Assigned filter (only meaningful for admin)
+  if (filters.assigned === 'unassigned' && user.role === 'admin') {
+    conditions.push('t.assigned_to IS NULL');
   }
 
   if (filters.status) {
@@ -68,12 +80,36 @@ const getTickets = async (user, filters) => {
   const limit = parseInt(filters.limit) || 5;
   const offset = (page - 1) * limit;
 
-  const [rows] = await pool.query(
-    `SELECT t.*, c.name AS category_name ${baseQuery}
-     ORDER BY t.updated_at DESC
-     LIMIT ? OFFSET ?`,
-    [...values, limit, offset]
-  );
+  // const [rows] = await pool.query(
+  //   // `SELECT t.*, c.name AS category_name ${baseQuery}
+  //   //  ORDER BY t.updated_at DESC
+  //   //  LIMIT ? OFFSET ?`,
+  //   // [...values, limit, offset]
+    
+  // );
+
+  // 🔥 SAFE SORTING
+const allowedSortFields = [
+  'created_at',
+  'updated_at',
+  'priority',
+  'status'
+];
+
+let orderBy = 't.updated_at DESC'; // default sorting
+
+if (filters.sort && allowedSortFields.includes(filters.sort)) {
+  const direction = filters.order === 'desc' ? 'DESC' : 'ASC';
+  orderBy = `t.${filters.sort} ${direction}`;
+}
+
+// Run final query
+const [rows] = await pool.query(
+  `SELECT t.*, c.name AS category_name ${baseQuery}
+   ORDER BY ${orderBy}
+   LIMIT ? OFFSET ?`,
+  [...values, limit, offset]
+);
 
   return {
     data: rows,
@@ -126,6 +162,7 @@ const assignTicket = async (ticketId, agentId) => {
     [agentId, ticketId]
   );
 };
+
 
 module.exports = {
   createTicket,
