@@ -10,9 +10,8 @@ router.post('/', authMiddleware, ticketController.createTicket);
 router.get('/', authMiddleware, ticketController.getTickets);
 router.get('/:id', authMiddleware, ticketController.getTicketById);
 router.patch('/:id/status', authMiddleware, ticketController.updateTicketStatus);
+router.patch('/:id/priority', authMiddleware, ticketController.updateTicketPriority);
 router.patch('/:id/assign', authMiddleware, ticketController.assignTicket);
-
-
 router.post('/:id/messages', authMiddleware, messageController.createMessage);
 router.get('/:id/messages', authMiddleware, messageController.getMessages);
 

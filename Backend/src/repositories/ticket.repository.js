@@ -155,10 +155,20 @@ const assignTicket = async (ticketId, agentId) => {
   );
 };
 
+const updateTicketPriority = async (ticketId, newPriority) => {
+  await pool.query(
+    `UPDATE tickets 
+     SET priority = ?
+     WHERE id = ?`,
+    [newPriority, ticketId]
+  );
+};
+
 module.exports = {
   createTicket,
   getTickets,
   getTicketById,
   updateTicketStatus,
+  updateTicketPriority,
   assignTicket
 };

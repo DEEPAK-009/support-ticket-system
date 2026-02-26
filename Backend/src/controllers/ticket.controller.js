@@ -63,6 +63,24 @@ const updateTicketStatus = async (req, res, next) => {
   }
 };
 
+const updateTicketPriority = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const { priority } = req.body;
+    const user = req.user;
+
+    const result = await ticketService.updateTicketPriority(
+      ticketId,
+      priority,
+      user
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const assignTicket = async (req, res, next) => {
   try {
     const ticketId = req.params.id;
@@ -88,5 +106,6 @@ module.exports = {
   getTickets,
   getTicketById,
   updateTicketStatus,
+  updateTicketPriority,
   assignTicket
 };

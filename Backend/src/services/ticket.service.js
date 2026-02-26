@@ -128,11 +128,36 @@ const assignTicket = async (ticketId, agentId, user) => {
   };
 };
 
+const updateTicketPriority = async (ticketId, newPriority, user) => {
+  const ticket = await ticketRepository.getTicketById(ticketId);
+
+  if (!ticket) {
+    throw new Error('Ticket not found');
+  }
+
+  // Only admin can change priority
+  if (user.role !== 'admin') {
+    throw new Error('Forbidden: Only admin can change priority');
+  }
+
+  const allowedPriorities = ['Low', 'Medium', 'High'];
+
+  if (!allowedPriorities.includes(newPriority)) {
+    throw new Error('Invalid priority value');
+  }
+
+  await ticketRepository.updateTicketPriority(ticketId, newPriority);
+
+  return {
+    message: 'Ticket priority updated successfully'
+  };
+};
 
 module.exports = {
   createTicket,
   getTickets,
   getTicketById,
+  updateTicketPriority,
   updateTicketStatus,
   assignTicket
 };
