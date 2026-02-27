@@ -11,6 +11,7 @@ const TicketDetails = () => {
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState([]);
   const [feedback, setFeedback] = useState({ message: "", type: "" });
+  const [lastMessageId, setLastMessageId] = useState(null);
   const { user } = useContext(AuthContext);
 
   // Buffer state to hold local changes before clicking Confirm
@@ -20,6 +21,8 @@ const TicketDetails = () => {
     assigned_to: ""
   });
 
+
+  
   const fetchTicket = async () => {
     try {
       const res = await axios.get(`/tickets/${id}`);
@@ -48,6 +51,8 @@ const TicketDetails = () => {
   useEffect(() => {
     fetchTicket();
   }, [id]);
+
+
 
   const handleConfirmAllChanges = async () => {
     try {
@@ -80,6 +85,8 @@ const TicketDetails = () => {
     setTimeout(() => setFeedback({ message: "", type: "" }), 3000);
   };
 
+
+
   const handleStart = async () => {
     try {
       await startTicket(id);
@@ -97,6 +104,35 @@ const TicketDetails = () => {
     }
     setTimeout(() => setFeedback({ message: "", type: "" }), 3000);
   };
+
+
+
+  const pollMessages = async () => {
+  try {
+    const res = await axios.get(`/api/tickets/${id}/messages`, {
+      params: { lastMessageId }
+    });
+
+    if (res.data.length > 0) {
+      setMessages(prev => [...prev, ...res.data]);
+      setLastMessageId(res.data[res.data.length - 1].id);
+    }
+    
+    // Immediately start the next long poll request
+    pollMessages();
+  } catch (err) {
+    // If request fails or times out, wait a bit before retrying
+    setTimeout(pollMessages, 5000);
+  }
+};
+
+useEffect(() => {
+  pollMessages();
+  // Cleanup is important to prevent multiple polling loops
+  return () => { /* logic to stop polling */ };
+}, [id]);
+
+
 
   if (loading) return <Layout><p className="p-6">Loading ticket details...</p></Layout>;
   if (!ticket) return <Layout><p className="p-6 text-red-600">Ticket not found.</p></Layout>;

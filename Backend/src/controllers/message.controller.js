@@ -1,37 +1,33 @@
 const messageService = require('../services/message.service');
 
-const createMessage = async (req, res, next) => {
-  try {
-    const ticketId = req.params.id;
-    const { message } = req.body;
-    const user = req.user;
-
-    const result = await messageService.createMessage(
-      ticketId,
-      message,
-      user
-    );
-
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getMessages = async (req, res, next) => {
+const getMessagesLongPolling = async (req, res, next) => {
   try {
     const ticketId = req.params.id;
     const user = req.user;
+    const lastMessageId = req.query.lastMessageId; // Frontend tracks the last ID it saw
 
-    const messages = await messageService.getMessages(ticketId, user);
+    // Timeout after 30 seconds to prevent gateway timeouts
+    const timeout = 30000; 
+    const startTime = Date.now();
 
-    res.status(200).json(messages);
+    const checkForUpdates = async () => {
+      const messages = await messageService.getMessages(ticketId, user);
+      
+      // Check if there's a message newer than what the client has
+      const newMessages = lastMessageId 
+        ? messages.filter(m => m.id > lastMessageId) 
+        : messages;
+
+      if (newMessages.length > 0 || (Date.now() - startTime) > timeout) {
+        return res.status(200).json(newMessages);
+      }
+
+      // If no new messages, wait 2 seconds and check again
+      setTimeout(checkForUpdates, 2000);
+    };
+
+    checkForUpdates();
   } catch (error) {
     next(error);
   }
-};
-
-module.exports = {
-  createMessage,
-  getMessages
 };
