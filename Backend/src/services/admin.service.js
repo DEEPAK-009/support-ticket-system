@@ -8,6 +8,15 @@ const getAllUsers = async () => {
 };
 
 
+const getAgentsByCategory = async (categoryId) => {
+  if (!categoryId) {
+    throw new Error('Category ID is required');
+  }
+
+  return await adminRepository.getAgentsByCategory(categoryId);
+};
+
+
 /**
  * Toggle user active status
  */
@@ -55,5 +64,6 @@ module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
   updateUserRole,
-  getTicketAnalytics
+  getTicketAnalytics,
+  getAgentsByCategory
 };

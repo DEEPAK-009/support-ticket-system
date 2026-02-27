@@ -115,10 +115,19 @@ const assignTicket = async (ticketId, agentId, user) => {
     throw new Error('Invalid agent selected');
   }
 
+  // 🔥 Department validation
+  if (!ticket.category_department_id) {
+    throw new Error('Ticket category is invalid');
+  }
+
+  if (agent.department_id !== ticket.category_department_id) {
+    throw new Error('Agent cannot handle tickets from this department');
+  }
+
   // Assign ticket
   await ticketRepository.assignTicket(ticketId, agentId);
 
-  // 🔥 Auto-change status if currently Open
+  // Auto-change status if currently Open
   if (ticket.status === 'Open') {
     await ticketRepository.updateTicketStatus(ticketId, 'Assigned');
   }

@@ -114,10 +114,15 @@ const getTickets = async (user, filters) => {
 
 const getTicketById = async (id) => {
   const [rows] = await pool.query(
-    `SELECT t.*, c.name AS category_name
-     FROM tickets t
-     LEFT JOIN categories c ON t.category_id = c.id
-     WHERE t.id = ?`,
+    `
+    SELECT 
+      t.*, 
+      c.name AS category_name,
+      c.department_id AS category_department_id
+    FROM tickets t
+    LEFT JOIN categories c ON t.category_id = c.id
+    WHERE t.id = ?
+    `,
     [id]
   );
 

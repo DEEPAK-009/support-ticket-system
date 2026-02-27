@@ -21,6 +21,30 @@ const getAllUsers = async () => {
   return rows;
 };
 
+const pool = require('../config/db');
+
+const getAgentsByCategory = async (categoryId) => {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      u.id,
+      u.full_name,
+      u.email,
+      u.level
+    FROM users u
+    JOIN categories c 
+      ON u.department_id = c.department_id
+    WHERE 
+      c.id = ?
+      AND u.role = 'agent'
+      AND u.is_active = TRUE
+    ORDER BY u.full_name ASC
+    `,
+    [categoryId]
+  );
+
+  return rows;
+};
 
 /**
  * Toggle user active status
@@ -66,5 +90,6 @@ module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
   updateUserRole,
-  getTicketAnalytics
+  getTicketAnalytics,
+  getAgentsByCategory
 };

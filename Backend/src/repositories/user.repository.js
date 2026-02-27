@@ -39,6 +39,7 @@ const updatePassword = async (userId, hashedPassword) => {
   );
 };
 
+
 module.exports = {
   findByEmail,
   findById,

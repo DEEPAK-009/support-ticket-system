@@ -9,6 +9,18 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
+const getAgents = async (req, res, next) => {
+  try {
+    const { categoryId } = req.query;
+
+    const agents = await adminService.getAgentsByCategory(categoryId);
+
+    res.status(200).json(agents);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const toggleUserActiveStatus = async (req, res, next) => {
   try {
     const adminId = req.user.id;
@@ -48,5 +60,6 @@ module.exports = {
   getAllUsers,
   toggleUserActiveStatus,
   updateUserRole,
-  getTicketAnalytics
+  getTicketAnalytics,
+  getAgents
 };
