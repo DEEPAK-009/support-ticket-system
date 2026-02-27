@@ -25,6 +25,14 @@ const findById = async (id) => {
   return rows[0];
 };
 
+const findPasswordByUserId = async (id) => {
+  const [rows] = await pool.query(
+    'SELECT password_hash FROM users WHERE id = ?',
+    [id]
+  );
+  return rows[0]?.password_hash;
+};
+
 const updateResetToken = async (userId, token, expiry) => {
   await pool.query(
     'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
@@ -44,5 +52,6 @@ module.exports = {
   findByEmail,
   findById,
   updateResetToken,
-  updatePassword
+  updatePassword,
+  findPasswordByUserId
 };

@@ -40,8 +40,23 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// Add to Backend/src/controllers/auth.controller.js
+const changePassword = async (req, res, next) => {
+  try {
+    const { old_password, new_password } = req.body;
+    const userId = req.user.id; // Populated by authMiddleware
+
+    await authService.changePassword(userId, old_password, new_password);
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changePassword
 };

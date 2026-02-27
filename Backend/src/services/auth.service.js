@@ -87,8 +87,22 @@ const resetPassword = async (token, newPassword) => {
   await userRepository.updatePassword(user.id, hashed);
 };
 
+
+const changePassword = async (userId, oldPassword, newPassword) => {
+  const currentHash = await userRepository.findPasswordByUserId(userId);
+  
+  if (!currentHash) throw new Error('User not found');
+
+  const isMatch = await comparePassword(oldPassword, currentHash);
+  if (!isMatch) throw new Error('Incorrect current password');
+
+  const hashed = await hashPassword(newPassword);
+  await userRepository.updatePassword(userId, hashed);
+};
+
 module.exports = {
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changePassword
 };
