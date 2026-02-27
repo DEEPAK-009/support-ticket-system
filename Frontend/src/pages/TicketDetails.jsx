@@ -33,7 +33,8 @@ const TicketDetails = () => {
         assigned_to: ticketData.assigned_to || ""
       });
 
-      if (ticketData.category_id) {
+      // ✅ Only fetch agents if the user is an admin
+      if (user?.role === "admin" && ticketData.category_id) {
         const agentRes = await axios.get(`/admin/agents?categoryId=${ticketData.category_id}`);
         setAgents(agentRes.data);
       }
