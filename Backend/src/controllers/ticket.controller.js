@@ -99,7 +99,17 @@ const assignTicket = async (req, res, next) => {
   }
 };
 
+const startTicket = async (req, res, next) => {
+  try {
+    const ticketId = req.params.id;
+    const agentId = req.user.id; // From authMiddleware
 
+    const result = await ticketService.startTicket(ticketId, agentId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   createTicket,
@@ -107,5 +117,6 @@ module.exports = {
   getTicketById,
   updateTicketStatus,
   updateTicketPriority,
-  assignTicket
+  assignTicket,
+  startTicket
 };

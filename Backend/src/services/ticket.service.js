@@ -162,11 +162,36 @@ const updateTicketPriority = async (ticketId, newPriority, user) => {
   };
 };
 
+const startTicket = async (ticketId, agentId) => {
+  const ticket = await ticketRepository.getTicketById(ticketId);
+
+  if (!ticket) {
+    throw new Error('Ticket not found');
+  }
+
+  // Security: Ensure only the assigned agent can start it
+  if (ticket.assigned_to !== agentId) {
+    throw new Error('Forbidden: You are not assigned to this ticket');
+  }
+
+  // Use your transition utility to verify Assigned -> In Progress
+  if (!canTransition('agent', ticket.status, 'In Progress')) {
+    throw new Error(`Invalid transition from ${ticket.status} to In Progress`);
+  }
+
+  await ticketRepository.updateTicketStatus(ticketId, 'In Progress');
+
+  return { message: 'Ticket started successfully' };
+};
+
+// Add startTicket to module.exports
+
 module.exports = {
   createTicket,
   getTickets,
   getTicketById,
   updateTicketPriority,
   updateTicketStatus,
-  assignTicket
+  assignTicket,
+  startTicket
 };

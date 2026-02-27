@@ -151,6 +151,13 @@ const updateTicketStatus = async (ticketId, newStatus) => {
   );
 };
 
+const updateStatus = async (ticketId, status) => {
+  await pool.query(
+    'UPDATE tickets SET status = ? WHERE id = ?',
+    [status, ticketId]
+  );
+};
+
 const assignTicket = async (ticketId, agentId) => {
   await pool.query(
     `UPDATE tickets 
@@ -175,5 +182,6 @@ module.exports = {
   getTicketById,
   updateTicketStatus,
   updateTicketPriority,
-  assignTicket
+  assignTicket,
+  updateStatus
 };

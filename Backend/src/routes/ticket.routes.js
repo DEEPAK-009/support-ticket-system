@@ -14,5 +14,6 @@ router.patch('/:id/priority', authMiddleware, ticketController.updateTicketPrior
 router.patch('/:id/assign', authMiddleware, ticketController.assignTicket);
 router.post('/:id/messages', authMiddleware, messageController.createMessage);
 router.get('/:id/messages', authMiddleware, messageController.getMessages);
+router.patch('/:id/start', authMiddleware, ticketController.startTicket);
 
 module.exports = router;
