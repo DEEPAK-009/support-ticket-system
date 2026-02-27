@@ -1,44 +1,41 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import Layout from "../components/Layout";
 import axios from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
-import { startTicket } from "../api/tickets";
+import { startTicket, getMessages, sendMessage } from "../api/tickets";
 
 const TicketDetails = () => {
   const { id } = useParams();
+  const { user } = useContext(AuthContext);
+
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState([]);
   const [feedback, setFeedback] = useState({ message: "", type: "" });
-  const [lastMessageId, setLastMessageId] = useState(null);
-  const { user } = useContext(AuthContext);
 
-  // Buffer state to hold local changes before clicking Confirm
-  const [pendingChanges, setPendingChanges] = useState({
-    status: "",
-    priority: "",
-    assigned_to: ""
-  });
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
 
+  const messagesEndRef = useRef(null);
+  const pollingActive = useRef(true);
+  const lastMessageIdRef = useRef(0);
 
-  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  /* -------------------- FETCH TICKET -------------------- */
   const fetchTicket = async () => {
     try {
       const res = await axios.get(`/tickets/${id}`);
       const ticketData = res.data;
       setTicket(ticketData);
 
-      // Sync local buffer with fetched ticket data
-      setPendingChanges({
-        status: ticketData.status,
-        priority: ticketData.priority,
-        assigned_to: ticketData.assigned_to || ""
-      });
-
-      // ✅ Only fetch agents if the user is an admin
       if (user?.role === "admin" && ticketData.category_id) {
-        const agentRes = await axios.get(`/admin/agents?categoryId=${ticketData.category_id}`);
+        const agentRes = await axios.get(
+          `/admin/agents?categoryId=${ticketData.category_id}`
+        );
         setAgents(agentRes.data);
       }
     } catch (err) {
@@ -48,218 +45,214 @@ const TicketDetails = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTicket();
-  }, [id]);
+  /* -------------------- LONG POLLING -------------------- */
+  const pollMessages = async () => {
+    if (!pollingActive.current) return;
 
-
-
-  const handleConfirmAllChanges = async () => {
     try {
-      const agentIdValue = pendingChanges.assigned_to === "" ? null : Number(pendingChanges.assigned_to);
-      const requests = [];
+      const res = await getMessages(id, lastMessageIdRef.current);
 
-      if (pendingChanges.status !== ticket.status) {
-        requests.push(axios.patch(`/tickets/${id}/status`, { status: pendingChanges.status }));
-      }
-      if (pendingChanges.priority !== ticket.priority) {
-        requests.push(axios.patch(`/tickets/${id}/priority`, { priority: pendingChanges.priority }));
-      }
-      if (agentIdValue !== ticket.assigned_to) {
-        requests.push(axios.patch(`/tickets/${id}/assign`, { agentId: agentIdValue }));
+      if (res && res.length > 0) {
+        setMessages(prev => [...prev, ...res]);
+        lastMessageIdRef.current = res[res.length - 1].id;
       }
 
-      if (requests.length > 0) {
-        await Promise.all(requests);
-        setTicket(prev => ({ ...prev, ...pendingChanges, assigned_to: agentIdValue }));
-        setFeedback({ message: "Changes saved successfully!", type: "success" });
-      } else {
-        setFeedback({ message: "No changes to save.", type: "info" });
+      if (pollingActive.current) {
+        setTimeout(pollMessages, 2000);
       }
     } catch (err) {
-      setFeedback({ 
-        message: "Update failed. Check transition rules.", 
-        type: "error" 
-      });
+      if (pollingActive.current) {
+        setTimeout(pollMessages, 5000);
+      }
     }
-    setTimeout(() => setFeedback({ message: "", type: "" }), 3000);
   };
 
+  useEffect(() => {
+    pollingActive.current = true;
+    fetchTicket();
+    pollMessages();
 
+    return () => {
+      pollingActive.current = false;
+    };
+  }, [id]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  /* -------------------- SEND MESSAGE -------------------- */
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    try {
+      await sendMessage(id, newMessage);
+      setNewMessage("");
+    } catch {
+      setFeedback({ message: "Failed to send message", type: "error" });
+    }
+  };
+
+  /* -------------------- START TICKET -------------------- */
   const handleStart = async () => {
     try {
       await startTicket(id);
-      
-      // Update local state to reflect the change immediately
-      setTicket(prev => ({ ...prev, status: 'In Progress' }));
-      setPendingChanges(prev => ({ ...prev, status: 'In Progress' }));
-      
-      setFeedback({ message: "Ticket started! Status is now In Progress.", type: "success" });
+      setTicket(prev => ({ ...prev, status: "In Progress" }));
+      setFeedback({ message: "Ticket started!", type: "success" });
     } catch (err) {
-      setFeedback({ 
-        message: err.response?.data?.message || "Failed to start ticket", 
-        type: "error" 
+      setFeedback({
+        message: err.response?.data?.message || "Failed to start",
+        type: "error"
       });
     }
+
     setTimeout(() => setFeedback({ message: "", type: "" }), 3000);
   };
 
-
-
-  const pollMessages = async () => {
-  try {
-    const res = await axios.get(`/api/tickets/${id}/messages`, {
-      params: { lastMessageId }
-    });
-
-    if (res.data.length > 0) {
-      setMessages(prev => [...prev, ...res.data]);
-      setLastMessageId(res.data[res.data.length - 1].id);
-    }
-    
-    // Immediately start the next long poll request
-    pollMessages();
-  } catch (err) {
-    // If request fails or times out, wait a bit before retrying
-    setTimeout(pollMessages, 5000);
+  if (loading) {
+    return (
+      <Layout>
+        <div className="p-6">Loading ticket details...</div>
+      </Layout>
+    );
   }
-};
 
-useEffect(() => {
-  pollMessages();
-  // Cleanup is important to prevent multiple polling loops
-  return () => { /* logic to stop polling */ };
-}, [id]);
-
-
-
-  if (loading) return <Layout><p className="p-6">Loading ticket details...</p></Layout>;
-  if (!ticket) return <Layout><p className="p-6 text-red-600">Ticket not found.</p></Layout>;
+  if (!ticket) {
+    return (
+      <Layout>
+        <div className="p-6 text-red-600">Ticket not found.</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="space-y-6 max-w-5xl mx-auto p-4">
-        {/* Header Section */}
+      {/* Prevent page scroll overflow */}
+      <div className="max-w-5xl mx-auto p-4 h-[90vh] flex flex-col space-y-6 overflow-hidden">
+
+        {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ticket #{ticket.id}</h1>
-            <p className="text-lg text-gray-600">{ticket.title}</p>
+            <h1 className="text-2xl font-bold">Ticket #{ticket.id}</h1>
+            <p className="text-gray-600">{ticket.title}</p>
           </div>
-          
-          {/* Status Badge */}
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-            ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-green-100 text-green-800'
-          }`}>
+
+          <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
             {ticket.status}
           </span>
         </div>
 
-        {/* Info Grid */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <p><strong className="text-gray-600">Category:</strong> {ticket.category_name || "Technical"}</p>
-            <p><strong className="text-gray-600">Priority:</strong> {ticket.priority}</p>
-            <p><strong className="text-gray-600">Assigned To:</strong> {ticket.assigned_to_name || (ticket.assigned_to ? `Agent ID: ${ticket.assigned_to}` : "Unassigned")}</p>
-          </div>
-          <div className="space-y-2 text-sm text-gray-500">
-            <p><strong>Created:</strong> {new Date(ticket.created_at).toLocaleString()}</p>
-            <p><strong>Last Updated:</strong> {new Date(ticket.updated_at).toLocaleString()}</p>
-          </div>
+        {/* 🔹 RESTORED INFO GRID */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <p>
+            <strong className="text-gray-600">Category:</strong>{" "}
+            {ticket.category_name || "Technical"}
+          </p>
+          <p>
+            <strong className="text-gray-600">Priority:</strong>{" "}
+            {ticket.priority}
+          </p>
+          <p>
+            <strong className="text-gray-600">Assigned To:</strong>{" "}
+            {ticket.assigned_to_name ||
+              (ticket.assigned_to
+                ? `Agent ID: ${ticket.assigned_to}`
+                : "Unassigned")}
+          </p>
         </div>
 
-        {/* Description Section */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="font-semibold text-gray-900 mb-3">Description</h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
+        <div className="space-y-2 text-sm text-gray-500">
+          <p>
+            <strong>Created:</strong>{" "}
+            {new Date(ticket.created_at).toLocaleString()}
+          </p>
+          <p>
+            <strong>Last Updated:</strong>{" "}
+            {new Date(ticket.updated_at).toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+        {/* Description */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="font-semibold mb-3">Description</h2>
+          <p className="whitespace-pre-wrap">{ticket.description}</p>
         </div>
 
-        {/* Agent Action: Start Working Button */}
-        {ticket.status === 'Assigned' && user?.id === ticket.assigned_to && (
-          <div className="flex justify-center p-6 bg-green-50 rounded-lg border border-green-100">
-            <button 
+        {/* Start Button */}
+        {ticket.status === "Assigned" &&
+          user?.id === ticket.assigned_to && (
+            <button
               onClick={handleStart}
-              className="bg-green-600 text-white px-8 py-3 rounded-md font-semibold hover:bg-green-700 shadow-md"
+              className="bg-green-600 text-white px-6 py-2 rounded-md"
             >
-              Start Working on Ticket
+              Start Working
             </button>
+          )}
+
+        {/* ---------------- CHAT SECTION ---------------- */}
+        <div className="bg-white rounded-lg border flex flex-col flex-1 overflow-hidden">
+
+          {/* Chat Header */}
+          <div className="p-4 border-b font-semibold bg-gray-50">
+            Conversation
           </div>
-        )}
-        
-        {/* Admin Controls */}
-        {user?.role === "admin" && (
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 space-y-4">
-            <h2 className="font-semibold text-gray-800">Admin Management</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Status</label>
-                <select
-                  value={pendingChanges.status}
-                  onChange={(e) => setPendingChanges({...pendingChanges, status: e.target.value})}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option>Open</option>
-                  <option>In Progress</option>
-                  <option>Awaiting User Response</option>
-                  <option>Resolved</option>
-                  <option>Closed</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Priority</label>
-                <select
-                  value={pendingChanges.priority}
-                  onChange={(e) => setPendingChanges({...pendingChanges, priority: e.target.value})}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option>High</option>
-                  <option>Medium</option>
-                  <option>Low</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Assign Agent</label>
-                <select
-                  value={pendingChanges.assigned_to}
-                  onChange={(e) => setPendingChanges({...pendingChanges, assigned_to: e.target.value})}
-                  className="border border-gray-300 px-3 py-2 rounded-md w-full bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">Unassigned</option>
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.full_name} ({agent.level})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="pt-4 flex items-center justify-between">
-              <div>
-                {feedback.message && (
-                  <div className={`text-sm px-4 py-2 rounded-md ${
-                    feedback.type === 'success' ? 'bg-green-100 text-green-700' : 
-                    feedback.type === 'error' ? 'bg-red-100 text-red-700' : 
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {feedback.message}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleConfirmAllChanges}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium shadow-sm transition-colors"
+          {/* Scrollable Message Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {messages.map(msg => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.sender_id === user.id
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
               >
-                Confirm Changes
-              </button>
-            </div>
+                <div
+                  className={`max-w-[75%] p-3 rounded-lg ${
+                    msg.sender_id === user.id
+                      ? "bg-blue-600 text-white rounded-br-none"
+                      : "bg-white border rounded-bl-none"
+                  }`}
+                >
+                  <p className="text-xs font-bold mb-1">
+                    {msg.full_name}
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {msg.message_text}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            <div ref={messagesEndRef} />
           </div>
-        )}
+
+          {/* Input Section (fixed) */}
+          <form
+            onSubmit={handleSendMessage}
+            className="p-4 border-t flex gap-2 bg-white"
+          >
+            <input
+              type="text"
+              className="flex-1 border rounded px-4 py-2"
+              placeholder="Type your message..."
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+            />
+
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-5 rounded"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+
       </div>
     </Layout>
   );
