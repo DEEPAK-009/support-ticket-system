@@ -7,6 +7,7 @@ const requireRole = require('./middleware/role.middleware');
 const ticketRoutes = require('./routes/ticket.routes');
 const adminRoutes = require('./routes/admin.routes');
 const categoryRoutes = require('./routes/category.routes');
+const messageRoutes = require('./routes/message.routes');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.use((req, res, next) => {
   console.log("Incoming request:", req.method, req.url);

@@ -1,6 +1,7 @@
 const ticketRepository = require('../repositories/ticket.repository');
 const messageRepository = require('../repositories/message.repository');
 const { canTransition } = require('../utils/statusTransitions');
+const messageEmitter = require('../utils/messageEvents');
 
 const createMessage = async (ticketId, messageText, user) => {
   if (!messageText) {
@@ -22,7 +23,11 @@ const createMessage = async (ticketId, messageText, user) => {
     throw new Error('Forbidden: You cannot message this ticket');
   }
 
-  await messageRepository.createMessage(ticketId, user.id, messageText);
+  const createdMessage = await messageRepository.createMessage(
+  ticketId,
+  user.id,
+  messageText
+);
 
   // Auto status updates
   const currentStatus = ticket.status;
@@ -41,33 +46,34 @@ const createMessage = async (ticketId, messageText, user) => {
     await ticketRepository.updateTicketStatus(ticketId, newStatus);
   }
 
-  return {
-    message: 'Message added successfully'
-  };
+  messageEmitter.emit('newMessage', {
+    ticketId,
+    message: createdMessage
+  });
+
+  return createdMessage;
 };
 
-const getMessages = async (ticketId, user) => {
+
+const getNewMessages = async (ticketId, user, lastId) => {
   const ticket = await ticketRepository.getTicketById(ticketId);
 
   if (!ticket) {
     throw new Error('Ticket not found');
   }
 
-  // Same access validation
   if (user.role === 'user' && ticket.created_by !== user.id) {
-    throw new Error('Forbidden: You cannot view this ticket');
+    throw new Error('Forbidden');
   }
 
   if (user.role === 'agent' && ticket.assigned_to !== user.id) {
-    throw new Error('Forbidden: You cannot view this ticket');
+    throw new Error('Forbidden');
   }
 
-  const messages = await messageRepository.getMessagesByTicketId(ticketId);
-
-  return messages;
+  return await messageRepository.getNewMessages(ticketId, lastId);
 };
 
 module.exports = {
   createMessage,
-  getMessages
+  getNewMessages
 };
