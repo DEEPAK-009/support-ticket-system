@@ -10,6 +10,10 @@ const createMessage = async (ticketId, messageText, user) => {
     throw new AppError('Message text is required', 400);
   }
 
+  if (user.role === 'admin') {
+    throw new AppError('Admins do not have access to ticket chat', 403);
+  }
+
   const ticket = await ticketRepository.getTicketById(ticketId);
 
   if (!ticket) {
@@ -85,6 +89,10 @@ const getNewMessages = async (ticketId, user, lastId) => {
 };
 
 const getMessages = async (ticketId, user) => {
+  if (user.role === 'admin') {
+    throw new AppError('Admins do not have access to ticket chat', 403);
+  }
+
   const ticket = await ticketRepository.getTicketById(ticketId);
 
   if (!ticket) {

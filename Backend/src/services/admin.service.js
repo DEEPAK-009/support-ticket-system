@@ -4,8 +4,8 @@ const AppError = require('../utils/appError');
 /**
  * Get all users (admin only)
  */
-const getAllUsers = async () => {
-  return await adminRepository.getAllUsers();
+const getAllUsers = async (query = {}) => {
+  return await adminRepository.getAllUsers(query);
 };
 
 
@@ -27,8 +27,8 @@ const toggleUserActiveStatus = async (adminId, userId) => {
   }
 
   // First fetch all users to find current status
-  const users = await adminRepository.getAllUsers();
-  const user = users.find(u => u.id === parseInt(userId));
+  const users = await adminRepository.getAllUsers({ page: 1, limit: 1000 });
+  const user = users.data.find(u => u.id === parseInt(userId));
 
   if (!user) {
     throw new AppError("User not found", 404);

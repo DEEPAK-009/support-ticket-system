@@ -38,15 +38,38 @@ const AgentDashboard = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-2">
+        <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-2">
             Agent Workspace
           </p>
-          <h1 className="text-2xl font-semibold text-slate-900">Assigned Tickets</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            Focus on the tickets currently assigned to you.
-          </p>
-        </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Assigned Tickets</h1>
+              <p className="text-sm text-slate-500 mt-3 max-w-2xl">
+                Focus on active work, move issues forward, and respond quickly when users are waiting.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Visible</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.length}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "Open").length}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">In Progress</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "In Progress").length}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Awaiting User</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "Awaiting User Response").length}</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <FilterBar filters={filters} setFilters={setFilters} />
 

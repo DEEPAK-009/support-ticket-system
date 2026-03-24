@@ -2,7 +2,7 @@ const adminService = require('../services/admin.service');
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await adminService.getAllUsers();
+    const users = await adminService.getAllUsers(req.query);
     res.status(200).json(users);
   } catch (error) {
     next(error);

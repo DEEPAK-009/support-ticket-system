@@ -5,13 +5,8 @@ export const getAdminAnalytics = async () => {
   return response.data;
 };
 
-export const getAdminUsers = async () => {
-  const response = await axios.get("/admin/users");
-  return response.data;
-};
-
-export const updateAdminUserRole = async (userId, role) => {
-  const response = await axios.patch(`/admin/users/${userId}/role`, { role });
+export const getAdminUsers = async (params = {}) => {
+  const response = await axios.get("/admin/users", { params });
   return response.data;
 };
 

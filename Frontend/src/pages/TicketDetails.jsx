@@ -15,13 +15,26 @@ import {
 import { getAgentsByCategory } from "../api/admin";
 
 const statusBadgeMap = {
-  Open: "bg-slate-100 text-slate-700",
-  Assigned: "bg-amber-100 text-amber-700",
-  "In Progress": "bg-blue-100 text-blue-700",
-  "Awaiting User Response": "bg-violet-100 text-violet-700",
-  Resolved: "bg-emerald-100 text-emerald-700",
-  Closed: "bg-slate-200 text-slate-700"
+  Open: "bg-slate-100 text-slate-700 border border-slate-200",
+  Assigned: "bg-amber-100 text-amber-700 border border-amber-200",
+  "In Progress": "bg-blue-100 text-blue-700 border border-blue-200",
+  "Awaiting User Response": "bg-violet-100 text-violet-700 border border-violet-200",
+  Resolved: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  Closed: "bg-slate-200 text-slate-700 border border-slate-300"
 };
+
+function getAvailableAdminStatuses(currentStatus, hasAssignee) {
+  const statusMap = {
+    Open: hasAssignee ? ["Open", "Assigned", "Resolved", "Closed"] : ["Open", "Resolved", "Closed"],
+    Assigned: hasAssignee ? ["Assigned", "In Progress", "Resolved", "Closed"] : ["Open"],
+    "In Progress": hasAssignee ? ["In Progress", "Awaiting User Response", "Resolved", "Closed"] : ["Open"],
+    "Awaiting User Response": hasAssignee ? ["Awaiting User Response", "In Progress", "Resolved", "Closed"] : ["Open"],
+    Resolved: ["Resolved", "Closed"],
+    Closed: ["Closed"]
+  };
+
+  return statusMap[currentStatus] || [currentStatus];
+}
 
 const TicketDetails = () => {
   const { id } = useParams();
@@ -43,6 +56,11 @@ const TicketDetails = () => {
 
   const isAdmin = user?.role === "admin";
   const isAssignedAgent = user?.role === "agent" && Number(user?.id) === Number(ticket?.assigned_to);
+  const canChat = Boolean(user) && !isAdmin;
+  const nextAssignedTo = pendingChanges.assigned_to === "" ? null : Number(pendingChanges.assigned_to);
+  const availableAdminStatuses = ticket
+    ? getAvailableAdminStatuses(ticket.status, Boolean(nextAssignedTo || ticket.assigned_to))
+    : [];
 
   const loadTicket = async () => {
     const ticketData = await getTicketById(id);
@@ -78,7 +96,7 @@ const TicketDetails = () => {
     const init = async () => {
       try {
         setLoading(true);
-        await Promise.all([loadTicket(), loadMessages()]);
+        await Promise.all([loadTicket(), canChat ? loadMessages() : Promise.resolve()]);
         setPageError("");
       } catch (error) {
         if (mounted) {
@@ -93,28 +111,30 @@ const TicketDetails = () => {
 
     init();
 
-    const stream = openTicketMessageStream(id, {
-      onMessage: (message) => {
-        setMessages((current) => {
-          if (current.some((entry) => entry.id === message.id)) {
-            return current;
-          }
+    if (canChat) {
+      const stream = openTicketMessageStream(id, {
+        onMessage: (message) => {
+          setMessages((current) => {
+            if (current.some((entry) => entry.id === message.id)) {
+              return current;
+            }
 
-          return [...current, message].sort((left, right) => left.id - right.id);
-        });
-        loadTicket().catch(() => {});
-      },
-      onError: () => {
-        if (mounted) {
-          setFeedback((current) => current.message ? current : {
-            message: "Live updates disconnected. Refresh if messages stop updating.",
-            type: "error"
+            return [...current, message].sort((left, right) => left.id - right.id);
           });
+          loadTicket().catch(() => {});
+        },
+        onError: () => {
+          if (mounted) {
+            setFeedback((current) => current.message ? current : {
+              message: "Live updates disconnected. Refresh if messages stop updating.",
+              type: "error"
+            });
+          }
         }
-      }
-    });
+      });
 
-    eventSourceRef.current = stream;
+      eventSourceRef.current = stream;
+    }
 
     return () => {
       mounted = false;
@@ -122,11 +142,24 @@ const TicketDetails = () => {
         eventSourceRef.current.close();
       }
     };
-  }, [id, user, isAdmin]);
+  }, [id, user, canChat, isAdmin]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!ticket || !isAdmin || availableAdminStatuses.length === 0) {
+      return;
+    }
+
+    if (!availableAdminStatuses.includes(pendingChanges.status)) {
+      setPendingChanges((current) => ({
+        ...current,
+        status: availableAdminStatuses[0]
+      }));
+    }
+  }, [availableAdminStatuses, isAdmin, pendingChanges.status, ticket]);
 
   const setFlashMessage = (message, type) => {
     setFeedback({ message, type });
@@ -147,7 +180,14 @@ const TicketDetails = () => {
     }
 
     try {
-      await sendMessage(id, newMessage.trim());
+      const createdMessage = await sendMessage(id, newMessage.trim());
+      setMessages((current) => {
+        if (current.some((entry) => entry.id === createdMessage.id)) {
+          return current;
+        }
+
+        return [...current, createdMessage].sort((left, right) => left.id - right.id);
+      });
       setNewMessage("");
       await refreshDetails();
     } catch (error) {
@@ -157,29 +197,43 @@ const TicketDetails = () => {
 
   const handleConfirmAllChanges = async () => {
     try {
-      const updates = [];
-
-      if (pendingChanges.status !== ticket.status) {
-        updates.push(updateTicketStatus(id, pendingChanges.status));
-      }
-
-      if (pendingChanges.priority !== ticket.priority) {
-        updates.push(updateTicketPriority(id, pendingChanges.priority));
-      }
-
-      const nextAssignedTo = pendingChanges.assigned_to === "" ? null : Number(pendingChanges.assigned_to);
       const currentAssignedTo = ticket.assigned_to === null ? null : Number(ticket.assigned_to);
 
-      if (nextAssignedTo !== currentAssignedTo) {
-        updates.push(assignTicket(id, nextAssignedTo));
+      if (pendingChanges.status === "Assigned" && !nextAssignedTo) {
+        setFlashMessage("Assign an agent before moving a ticket to Assigned.", "error");
+        return;
       }
 
-      if (updates.length === 0) {
+      if (
+        ["In Progress", "Awaiting User Response"].includes(pendingChanges.status) &&
+        !nextAssignedTo
+      ) {
+        setFlashMessage(`An assigned agent is required for ${pendingChanges.status}.`, "error");
+        return;
+      }
+
+      const hasAssignmentChanged = nextAssignedTo !== currentAssignedTo;
+      const hasStatusChanged = pendingChanges.status !== ticket.status;
+      const hasPriorityChanged = pendingChanges.priority !== ticket.priority;
+
+      if (!hasAssignmentChanged && !hasStatusChanged && !hasPriorityChanged) {
         setFlashMessage("No changes to save.", "success");
         return;
       }
 
-      await Promise.all(updates);
+      // Keep this sequence explicit so assignment-dependent status updates do not race.
+      if (hasAssignmentChanged) {
+        await assignTicket(id, nextAssignedTo);
+      }
+
+      if (hasStatusChanged) {
+        await updateTicketStatus(id, pendingChanges.status);
+      }
+
+      if (hasPriorityChanged) {
+        await updateTicketPriority(id, pendingChanges.priority);
+      }
+
       await refreshDetails();
       setFlashMessage("Changes saved successfully.", "success");
     } catch (error) {
@@ -223,24 +277,47 @@ const TicketDetails = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-2">
-              Ticket Detail
-            </p>
-            <h1 className="text-2xl font-semibold text-slate-900">
-              #{ticket.id} · {ticket.title}
-            </h1>
-            <p className="text-sm text-slate-500 mt-2">
-              Created by {ticket.created_by_name || "Unknown"} on{" "}
-              {new Date(ticket.created_at).toLocaleString()}
-            </p>
+        <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
+          <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 px-8 py-8 text-white">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-400 mb-2">
+                  Ticket Detail
+                </p>
+                <h1 className="text-3xl font-semibold tracking-tight">
+                  #{ticket.id} · {ticket.title}
+                </h1>
+                <p className="text-sm text-slate-300 mt-3 max-w-2xl">
+                  Created by {ticket.created_by_name || "Unknown"} on{" "}
+                  {new Date(ticket.created_at).toLocaleString()}
+                </p>
+              </div>
+
+              <span className={`inline-flex h-fit rounded-full px-3 py-1.5 text-sm font-medium ${statusBadgeMap[ticket.status] || statusBadgeMap.Open}`}>
+                {ticket.status}
+              </span>
+            </div>
           </div>
 
-          <span className={`inline-flex rounded-full px-3 py-1.5 text-sm font-medium ${statusBadgeMap[ticket.status] || statusBadgeMap.Open}`}>
-            {ticket.status}
-          </span>
-        </div>
+          <div className="grid gap-4 border-t border-slate-200 bg-slate-50 px-8 py-5 md:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Category</p>
+              <p className="mt-3 font-semibold text-slate-950">{ticket.category_name}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Priority</p>
+              <p className="mt-3 font-semibold text-slate-950">{ticket.priority}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Assigned To</p>
+              <p className="mt-3 font-semibold text-slate-950">{ticket.assigned_to_name || "Unassigned"}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Last Updated</p>
+              <p className="mt-3 font-semibold text-slate-950">{new Date(ticket.updated_at).toLocaleString()}</p>
+            </div>
+          </div>
+        </section>
 
         {feedback.message ? (
           <div
@@ -254,34 +331,12 @@ const TicketDetails = () => {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div className="space-y-6">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Ticket Summary</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-slate-500">Category</p>
-                  <p className="font-medium text-slate-900 mt-1">{ticket.category_name}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Priority</p>
-                  <p className="font-medium text-slate-900 mt-1">{ticket.priority}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Assigned To</p>
-                  <p className="font-medium text-slate-900 mt-1">{ticket.assigned_to_name || "Unassigned"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Updated</p>
-                  <p className="font-medium text-slate-900 mt-1">{new Date(ticket.updated_at).toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <p className="text-slate-500 text-sm mb-2">Description</p>
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700 whitespace-pre-wrap">
-                  {ticket.description}
-                </div>
+            <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Description</h2>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-sm leading-7 text-slate-700 whitespace-pre-wrap">
+                {ticket.description}
               </div>
 
               {isAssignedAgent && ticket.status === "Assigned" ? (
@@ -295,10 +350,10 @@ const TicketDetails = () => {
             </section>
 
             {isAdmin ? (
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900">Admin Controls</h2>
-                  <p className="text-sm text-slate-500 mt-1">Manage status, priority, and assignment from one place.</p>
+                  <p className="text-sm text-slate-500 mt-1">Assignment and status now follow the same server-side rules used by the backend.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -309,12 +364,11 @@ const TicketDetails = () => {
                       onChange={(event) => setPendingChanges({ ...pendingChanges, status: event.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
                     >
-                      <option>Open</option>
-                      <option>Assigned</option>
-                      <option>In Progress</option>
-                      <option>Awaiting User Response</option>
-                      <option>Resolved</option>
-                      <option>Closed</option>
+                      {availableAdminStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -351,7 +405,7 @@ const TicketDetails = () => {
                 <div className="flex justify-end">
                   <button
                     onClick={handleConfirmAllChanges}
-                    className="rounded-lg bg-slate-900 px-4 py-2.5 text-white hover:bg-slate-800 transition-colors"
+                    className="rounded-xl bg-slate-900 px-4 py-2.5 text-white hover:bg-slate-800 transition-colors"
                   >
                     Save Changes
                   </button>
@@ -359,9 +413,11 @@ const TicketDetails = () => {
               </section>
             ) : null}
 
-            <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {canChat ? (
+              <section className="rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden">
               <div className="border-b border-slate-200 px-6 py-4">
                 <h2 className="text-lg font-semibold text-slate-900">Conversation</h2>
+                <p className="mt-1 text-sm text-slate-500">Messages update live and also appear instantly when you send them.</p>
               </div>
 
               <div className="max-h-[420px] overflow-y-auto bg-slate-50 px-6 py-5 space-y-4">
@@ -413,28 +469,28 @@ const TicketDetails = () => {
                   Send
                 </button>
               </form>
-            </section>
+              </section>
+            ) : null}
           </div>
 
-          <aside>
-            <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <div className="border-b border-slate-200 px-5 py-4">
-                <h2 className="text-lg font-semibold text-slate-900">Activity Timeline</h2>
-              </div>
-
-              <div className="max-h-[760px] overflow-y-auto p-5 space-y-4">
-                {(ticket.activity || []).length === 0 ? (
-                  <p className="text-sm text-slate-500">No activity recorded yet.</p>
-                ) : (
-                  ticket.activity.map((entry) => (
-                    <div key={entry.id} className="border-l-2 border-slate-200 pl-4">
-                      <p className="text-sm font-medium text-slate-900">{entry.description}</p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {entry.actor_name || "System"} · {new Date(entry.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                )}
+          <aside className="space-y-6">
+            <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">Current Workflow</h2>
+              <div className="mt-5 space-y-3 text-sm">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Submitted By</p>
+                  <p className="mt-2 font-medium text-slate-950">{ticket.created_by_name || "Unknown"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Assignment</p>
+                  <p className="mt-2 font-medium text-slate-950">{ticket.assigned_to_name || "No agent assigned yet"}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Progress Rule</p>
+                  <p className="mt-2 leading-6 text-slate-700">
+                    Tickets must have an assigned agent before they can move to Assigned, In Progress, or Awaiting User Response.
+                  </p>
+                </div>
               </div>
             </section>
           </aside>

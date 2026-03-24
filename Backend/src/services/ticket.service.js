@@ -81,6 +81,23 @@ const updateTicketStatus = async (ticketId, newStatus, user) => {
 
   const currentStatus = ticket.status;
 
+  if (!newStatus) {
+    throw new AppError('Status is required', 400);
+  }
+
+  if (currentStatus === newStatus) {
+    return {
+      message: 'Ticket status unchanged'
+    };
+  }
+
+  if (
+    ['Assigned', 'In Progress', 'Awaiting User Response'].includes(newStatus) &&
+    !ticket.assigned_to
+  ) {
+    throw new AppError(`Cannot move ticket to ${newStatus} without an assigned agent`, 400);
+  }
+
   if (!canTransition(user.role, currentStatus, newStatus)) {
     throw new AppError(`Invalid status transition from ${currentStatus} to ${newStatus}`, 400);
   }
@@ -120,6 +137,10 @@ const assignTicket = async (ticketId, agentId, user) => {
   const previousAssignedTo = ticket.assigned_to;
   const previousAssignedToName = ticket.assigned_to_name || 'Unassigned';
   let nextAssignedToName = 'Unassigned';
+
+  if (normalizedAgentId !== null && Number.isNaN(normalizedAgentId)) {
+    throw new AppError('Invalid agent selected', 400);
+  }
 
   if (normalizedAgentId) {
     const agent = await userRepository.findById(normalizedAgentId);
@@ -196,6 +217,12 @@ const updateTicketPriority = async (ticketId, newPriority, user) => {
   }
 
   const allowedPriorities = ['Low', 'Medium', 'High'];
+
+  if (ticket.priority === newPriority) {
+    return {
+      message: 'Ticket priority unchanged'
+    };
+  }
 
   if (!allowedPriorities.includes(newPriority)) {
     throw new AppError('Invalid priority value', 400);

@@ -3,9 +3,17 @@ const db = require('../config/db');
 /**
  * Get all users (basic info)
  */
-const getAllUsers = async () => {
-  const [rows] = await db.execute(`
-    SELECT 
+const getAllUsers = async ({ page = 1, limit = 8 } = {}) => {
+  const normalizedPage = Number(page) > 0 ? Number(page) : 1;
+  const normalizedLimit = Number(limit) > 0 ? Number(limit) : 8;
+  const offset = (normalizedPage - 1) * normalizedLimit;
+
+  const [countRows] = await db.execute(
+    `SELECT COUNT(*) AS total FROM users`
+  );
+
+  const [rows] = await db.execute(
+    `SELECT 
       u.id,
       u.full_name,
       u.email,
@@ -16,9 +24,17 @@ const getAllUsers = async () => {
     FROM users u
     LEFT JOIN departments d ON u.department_id = d.id
     ORDER BY u.created_at DESC
-  `);
+    LIMIT ? OFFSET ?`,
+    [normalizedLimit, offset]
+  );
 
-  return rows;
+  return {
+    data: rows,
+    total: countRows[0].total,
+    page: normalizedPage,
+    limit: normalizedLimit,
+    totalPages: Math.ceil(countRows[0].total / normalizedLimit)
+  };
 };
 
 const pool = require('../config/db');

@@ -32,6 +32,10 @@ router.get("/stream/:id", async (req, res) => {
     return res.status(404).json({ message: "Ticket not found" });
   }
 
+  if (user.role === "admin") {
+    return res.status(403).json({ message: "Admins do not have access to ticket chat" });
+  }
+
   if (user.role === "user" && ticket.created_by !== user.id) {
     return res.status(403).json({ message: "Forbidden" });
   }
