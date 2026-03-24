@@ -28,6 +28,7 @@ const TicketDetails = () => {
   const { user } = useContext(AuthContext);
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
   const [agents, setAgents] = useState([]);
   const [feedback, setFeedback] = useState({ message: "", type: "" });
   const [messages, setMessages] = useState([]);
@@ -53,8 +54,12 @@ const TicketDetails = () => {
     });
 
     if (isAdmin && ticketData.category_id) {
-      const agentList = await getAgentsByCategory(ticketData.category_id);
-      setAgents(agentList);
+      try {
+        const agentList = await getAgentsByCategory(ticketData.category_id);
+        setAgents(agentList);
+      } catch (_error) {
+        setAgents([]);
+      }
     }
   };
 
@@ -74,12 +79,10 @@ const TicketDetails = () => {
       try {
         setLoading(true);
         await Promise.all([loadTicket(), loadMessages()]);
+        setPageError("");
       } catch (error) {
         if (mounted) {
-          setFeedback({
-            message: error.response?.data?.message || "Unable to load ticket details.",
-            type: "error"
-          });
+          setPageError(error.response?.data?.message || "Unable to load ticket details.");
         }
       } finally {
         if (mounted) {
@@ -171,6 +174,11 @@ const TicketDetails = () => {
         updates.push(assignTicket(id, nextAssignedTo));
       }
 
+      if (updates.length === 0) {
+        setFlashMessage("No changes to save.", "success");
+        return;
+      }
+
       await Promise.all(updates);
       await refreshDetails();
       setFlashMessage("Changes saved successfully.", "success");
@@ -200,7 +208,14 @@ const TicketDetails = () => {
   if (!ticket) {
     return (
       <Layout>
-        <p className="text-sm text-red-600">Ticket not found.</p>
+        <div className="rounded-2xl border border-red-200 bg-white p-8 shadow-sm">
+          <p className="text-sm font-medium text-red-600">
+            {pageError || "Ticket not found."}
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Check that the ticket exists and that your account has access to it.
+          </p>
+        </div>
       </Layout>
     );
   }
@@ -391,7 +406,10 @@ const TicketDetails = () => {
                   value={newMessage}
                   onChange={(event) => setNewMessage(event.target.value)}
                 />
-                <button className="rounded-lg bg-slate-900 px-5 py-2.5 text-white hover:bg-slate-800 transition-colors">
+                <button
+                  disabled={!newMessage.trim()}
+                  className="rounded-lg bg-slate-900 px-5 py-2.5 text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                >
                   Send
                 </button>
               </form>

@@ -51,6 +51,9 @@ export const sendMessage = async (ticketId, message) => {
 
 export const openTicketMessageStream = (ticketId, handlers = {}) => {
   const token = localStorage.getItem("token");
+  if (!token) {
+    return null;
+  }
   const streamUrl = `${getApiOrigin()}/messages/stream/${ticketId}?token=${encodeURIComponent(token || "")}`;
   const eventSource = new EventSource(streamUrl);
 

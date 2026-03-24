@@ -39,22 +39,39 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="flex justify-between items-start mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Profile</h1>
+      <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Account
+          </p>
+          <h1 className="text-2xl font-semibold text-slate-900">Profile</h1>
+          <p className="text-sm text-slate-500 mt-2">
+            Review your account details and keep your password current.
+          </p>
+        </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-700 transition-colors"
+          className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm text-white hover:bg-slate-800 transition-colors"
         >
           Change Password
         </button>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 max-w-lg">
-        <div className="space-y-3">
-          <p><span className="text-gray-500">Name:</span> {user?.full_name}</p>
-          <p><span className="text-gray-500">Email:</span> {user?.email}</p>
-          <p><span className="text-gray-500">Role:</span> <span className="capitalize">{user?.role}</span></p>
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Full Name</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900">{user?.full_name}</p>
         </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Email</p>
+          <p className="mt-3 text-lg font-semibold text-slate-900 break-all">{user?.email}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Role</p>
+          <p className="mt-3 text-lg font-semibold capitalize text-slate-900">{user?.role}</p>
+        </div>
+      </div>
       </div>
 
       {isModalOpen && (
