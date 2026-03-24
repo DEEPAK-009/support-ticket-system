@@ -24,6 +24,8 @@ const getTickets = async (user, filters) => {
   let baseQuery = `
     FROM tickets t
     LEFT JOIN categories c ON t.category_id = c.id
+    LEFT JOIN users assigned_user ON t.assigned_to = assigned_user.id
+    LEFT JOIN users creator_user ON t.created_by = creator_user.id
   `;
 
   let conditions = [];
@@ -43,6 +45,10 @@ const getTickets = async (user, filters) => {
   // 🔹 ASSIGNED FILTER (admin only)
   if (filters.assigned === 'unassigned' && user.role === 'admin') {
     conditions.push('t.assigned_to IS NULL');
+  }
+
+  if (filters.assigned === 'assigned' && user.role === 'admin') {
+    conditions.push('t.assigned_to IS NOT NULL');
   }
 
   // 🔹 STATUS FILTER
@@ -97,7 +103,12 @@ const getTickets = async (user, filters) => {
 
   // 🔹 FINAL QUERY
   const [rows] = await pool.query(
-    `SELECT t.*, c.name AS category_name ${baseQuery}
+    `SELECT
+      t.*,
+      c.name AS category_name,
+      assigned_user.full_name AS assigned_to_name,
+      creator_user.full_name AS created_by_name
+      ${baseQuery}
      ORDER BY t.${sortField} ${order}
      LIMIT ? OFFSET ?`,
     [...values, limit, offset]
@@ -118,9 +129,13 @@ const getTicketById = async (id) => {
     SELECT 
       t.*, 
       c.name AS category_name,
-      c.department_id AS category_department_id
+      c.department_id AS category_department_id,
+      assigned_user.full_name AS assigned_to_name,
+      creator_user.full_name AS created_by_name
     FROM tickets t
     LEFT JOIN categories c ON t.category_id = c.id
+    LEFT JOIN users assigned_user ON t.assigned_to = assigned_user.id
+    LEFT JOIN users creator_user ON t.created_by = creator_user.id
     WHERE t.id = ?
     `,
     [id]

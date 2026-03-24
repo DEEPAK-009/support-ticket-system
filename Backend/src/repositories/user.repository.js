@@ -33,6 +33,15 @@ const findPasswordByUserId = async (id) => {
   return rows[0]?.password_hash;
 };
 
+const findResettableUserByToken = async (token) => {
+  const [rows] = await pool.query(
+    'SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > NOW() LIMIT 1',
+    [token]
+  );
+
+  return rows[0];
+};
+
 const updateResetToken = async (userId, token, expiry) => {
   await pool.query(
     'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
@@ -53,5 +62,6 @@ module.exports = {
   findById,
   updateResetToken,
   updatePassword,
-  findPasswordByUserId
+  findPasswordByUserId,
+  findResettableUserByToken
 };

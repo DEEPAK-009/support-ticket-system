@@ -22,31 +22,9 @@ const getMessages = async (req, res, next) => {
   try {
     const ticketId = req.params.id;
     const user = req.user;
-    const lastSeenMessageId = parseInt(req.query.lastId) || 0;
+    const messages = await messageService.getMessages(ticketId, user);
 
-    const timeout = 30000;
-    const pollInterval = 2000;
-    const startTime = Date.now();
-
-    const checkForMessages = async () => {
-      const newMessages = await messageService.getNewMessages(
-        ticketId,
-        user,
-        lastSeenMessageId
-      );
-
-      if (newMessages.length > 0) {
-        return res.status(200).json(newMessages);
-      }
-
-      if (Date.now() - startTime >= timeout) {
-        return res.status(200).json([]);
-      }
-
-      setTimeout(checkForMessages, pollInterval);
-    };
-    
-    checkForMessages();
+    res.status(200).json(messages);
   } catch (error) {
     next(error);
   }

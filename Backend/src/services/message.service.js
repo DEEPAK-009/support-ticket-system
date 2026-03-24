@@ -1,26 +1,28 @@
 const ticketRepository = require('../repositories/ticket.repository');
 const messageRepository = require('../repositories/message.repository');
+const ticketActivityRepository = require('../repositories/ticketActivity.repository');
 const { canTransition } = require('../utils/statusTransitions');
 const messageEmitter = require('../utils/messageEvents');
+const AppError = require('../utils/appError');
 
 const createMessage = async (ticketId, messageText, user) => {
   if (!messageText) {
-    throw new Error('Message text is required');
+    throw new AppError('Message text is required', 400);
   }
 
   const ticket = await ticketRepository.getTicketById(ticketId);
 
   if (!ticket) {
-    throw new Error('Ticket not found');
+    throw new AppError('Ticket not found', 404);
   }
 
   // Access control
   if (user.role === 'user' && ticket.created_by !== user.id) {
-    throw new Error('Forbidden: You cannot message this ticket');
+    throw new AppError('Forbidden: You cannot message this ticket', 403);
   }
 
   if (user.role === 'agent' && ticket.assigned_to !== user.id) {
-    throw new Error('Forbidden: You cannot message this ticket');
+    throw new AppError('Forbidden: You cannot message this ticket', 403);
   }
 
   const createdMessage = await messageRepository.createMessage(
@@ -44,6 +46,15 @@ const createMessage = async (ticketId, messageText, user) => {
 
   if (newStatus && canTransition(user.role, currentStatus, newStatus)) {
     await ticketRepository.updateTicketStatus(ticketId, newStatus);
+    await ticketActivityRepository.createActivityLog({
+      ticketId,
+      actorId: user.id,
+      eventType: 'status_changed',
+      fieldName: 'status',
+      oldValue: currentStatus,
+      newValue: newStatus,
+      description: `Status changed from ${currentStatus} to ${newStatus} after a new message`
+    });
   }
 
   messageEmitter.emit('newMessage', {
@@ -59,21 +70,40 @@ const getNewMessages = async (ticketId, user, lastId) => {
   const ticket = await ticketRepository.getTicketById(ticketId);
 
   if (!ticket) {
-    throw new Error('Ticket not found');
+    throw new AppError('Ticket not found', 404);
   }
 
   if (user.role === 'user' && ticket.created_by !== user.id) {
-    throw new Error('Forbidden');
+    throw new AppError('Forbidden', 403);
   }
 
   if (user.role === 'agent' && ticket.assigned_to !== user.id) {
-    throw new Error('Forbidden');
+    throw new AppError('Forbidden', 403);
   }
 
   return await messageRepository.getNewMessages(ticketId, lastId);
 };
 
+const getMessages = async (ticketId, user) => {
+  const ticket = await ticketRepository.getTicketById(ticketId);
+
+  if (!ticket) {
+    throw new AppError('Ticket not found', 404);
+  }
+
+  if (user.role === 'user' && ticket.created_by !== user.id) {
+    throw new AppError('Forbidden', 403);
+  }
+
+  if (user.role === 'agent' && ticket.assigned_to !== user.id) {
+    throw new AppError('Forbidden', 403);
+  }
+
+  return messageRepository.getMessagesByTicketId(ticketId);
+};
+
 module.exports = {
   createMessage,
-  getNewMessages
+  getNewMessages,
+  getMessages
 };

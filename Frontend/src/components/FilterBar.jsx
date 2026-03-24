@@ -1,4 +1,4 @@
-const FilterBar = ({ filters, setFilters }) => {
+const FilterBar = ({ filters, setFilters, showAssignedFilter = false }) => {
   const updateFilter = (key, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -20,6 +20,7 @@ const FilterBar = ({ filters, setFilters }) => {
         <option value="Open">Open</option>
         <option value="Assigned">Assigned</option>
         <option value="In Progress">In Progress</option>
+        <option value="Awaiting User Response">Awaiting User Response</option>
         <option value="Resolved">Resolved</option>
         <option value="Closed">Closed</option>
         </select>
@@ -36,16 +37,17 @@ const FilterBar = ({ filters, setFilters }) => {
         <option value="Low">Low</option>
       </select>
 
-      {/* Assigned Filter */}
-      <select
-        value={filters.assigned || ""}
-        onChange={(e) => updateFilter("assigned", e.target.value)}
-        className="border px-3 py-2 rounded text-sm"
-      >
-        <option value="">All</option>
-        <option value="assigned">Assigned</option>
-        <option value="unassigned">Unassigned</option>
-      </select>
+      {showAssignedFilter ? (
+        <select
+          value={filters.assigned || ""}
+          onChange={(e) => updateFilter("assigned", e.target.value)}
+          className="border px-3 py-2 rounded text-sm"
+        >
+          <option value="">All</option>
+          <option value="assigned">Assigned</option>
+          <option value="unassigned">Unassigned</option>
+        </select>
+      ) : null}
 
       {/* Sort Toggle */}
       <select

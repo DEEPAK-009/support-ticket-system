@@ -1,29 +1,75 @@
 import axios from "./axios";
 
-// 1. Fetch Tickets
-export const getTickets = async (params = {}) => {
-  const response = await axios.get("/tickets", {
-    params,
-  });
-  return response.data;
-}; // <--- MAKE SURE THIS BRACE IS HERE
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
 
-// 2. Start Ticket (Agent Action)
+const getApiOrigin = () => apiBaseUrl.replace(/\/api$/, "");
+
+export const getTickets = async (params = {}) => {
+  const response = await axios.get("/tickets", { params });
+  return response.data;
+};
+
+export const getTicketById = async (ticketId) => {
+  const response = await axios.get(`/tickets/${ticketId}`);
+  return response.data;
+};
+
+export const createTicket = async (payload) => {
+  const response = await axios.post("/tickets", payload);
+  return response.data;
+};
+
+export const updateTicketStatus = async (ticketId, status) => {
+  const response = await axios.patch(`/tickets/${ticketId}/status`, { status });
+  return response.data;
+};
+
+export const updateTicketPriority = async (ticketId, priority) => {
+  const response = await axios.patch(`/tickets/${ticketId}/priority`, { priority });
+  return response.data;
+};
+
+export const assignTicket = async (ticketId, agentId) => {
+  const response = await axios.patch(`/tickets/${ticketId}/assign`, { agentId });
+  return response.data;
+};
+
 export const startTicket = async (ticketId) => {
   const response = await axios.patch(`/tickets/${ticketId}/start`);
   return response.data;
 };
 
-// 3. Get Messages (Long Polling)
-export const getMessages = async (ticketId, lastId = 0) => {
-  const response = await axios.get(`/tickets/${ticketId}/messages`, {
-    params: { lastId }
-  });
+export const getMessages = async (ticketId) => {
+  const response = await axios.get(`/tickets/${ticketId}/messages`);
   return response.data;
 };
 
-// 4. Send Message
 export const sendMessage = async (ticketId, message) => {
   const response = await axios.post(`/tickets/${ticketId}/messages`, { message });
   return response.data;
+};
+
+export const openTicketMessageStream = (ticketId, handlers = {}) => {
+  const token = localStorage.getItem("token");
+  const streamUrl = `${getApiOrigin()}/messages/stream/${ticketId}?token=${encodeURIComponent(token || "")}`;
+  const eventSource = new EventSource(streamUrl);
+
+  eventSource.addEventListener("connected", (event) => {
+    handlers.onConnected?.(event);
+  });
+
+  eventSource.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      handlers.onMessage?.(payload);
+    } catch (error) {
+      handlers.onError?.(error);
+    }
+  };
+
+  eventSource.onerror = (error) => {
+    handlers.onError?.(error);
+  };
+
+  return eventSource;
 };

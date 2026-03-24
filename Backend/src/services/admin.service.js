@@ -1,4 +1,5 @@
 const adminRepository = require('../repositories/admin.repository');
+const AppError = require('../utils/appError');
 
 /**
  * Get all users (admin only)
@@ -10,7 +11,7 @@ const getAllUsers = async () => {
 
 const getAgentsByCategory = async (categoryId) => {
   if (!categoryId) {
-    throw new Error('Category ID is required');
+    throw new AppError('Category ID is required', 400);
   }
 
   return await adminRepository.getAgentsByCategory(categoryId);
@@ -22,7 +23,7 @@ const getAgentsByCategory = async (categoryId) => {
  */
 const toggleUserActiveStatus = async (adminId, userId) => {
   if (adminId === parseInt(userId)) {
-    throw new Error("Admin cannot deactivate themselves");
+    throw new AppError("Admin cannot deactivate themselves", 400);
   }
 
   // First fetch all users to find current status
@@ -30,7 +31,7 @@ const toggleUserActiveStatus = async (adminId, userId) => {
   const user = users.find(u => u.id === parseInt(userId));
 
   if (!user) {
-    throw new Error("User not found");
+    throw new AppError("User not found", 404);
   }
 
   const newStatus = !user.is_active;
@@ -48,7 +49,7 @@ const updateUserRole = async (userId, role) => {
   const allowedRoles = ['user', 'agent', 'admin'];
 
   if (!allowedRoles.includes(role)) {
-    throw new Error("Invalid role");
+    throw new AppError("Invalid role", 400);
   }
 
   await adminRepository.updateUserRole(userId, role);

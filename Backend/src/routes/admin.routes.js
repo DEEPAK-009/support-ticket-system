@@ -12,7 +12,6 @@ router.get('/users', adminController.getAllUsers);
 router.patch('/users/:id/toggle-active', adminController.toggleUserActiveStatus);
 router.patch('/users/:id/role', adminController.updateUserRole);
 router.get('/analytics', adminController.getTicketAnalytics);
-
-router.get('/agents', authMiddleware, requireRole('admin', 'agent'), adminController.getAgents);
+router.get('/agents', adminController.getAgents);
 
 module.exports = router;

@@ -1,21 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import Layout from "../components/Layout";
-import axios from "../api/axios";
+import { createTicket } from "../api/tickets";
+import { getCategories } from "../api/categories";
 
 const CreateTicket = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ title: "", description: "", category_id: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (loadError) {
+        setError("Unable to load categories.");
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError("");
     try {
-      await axios.post("/tickets", formData);
+      await createTicket(formData);
       navigate("/dashboard");
     } catch (err) {
-      alert("Failed to create ticket. Please try again.");
+      setError(err.response?.data?.message || "Failed to create ticket. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -25,6 +43,11 @@ const CreateTicket = () => {
     <Layout>
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-sm border mt-10">
         <h2 className="text-2xl font-bold mb-6">Submit a Support Ticket</h2>
+        {error ? (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </div>
+        ) : null}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
@@ -35,7 +58,22 @@ const CreateTicket = () => {
               onChange={(e) => setFormData({...formData, title: e.target.value})}
             />
           </div>
-          {/* Add Category Select here based on your database categories */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select
+              required
+              value={formData.category_id}
+              className="w-full border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea 

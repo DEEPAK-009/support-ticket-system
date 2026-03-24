@@ -32,12 +32,21 @@ const Sidebar = () => {
           >
             Profile
           </button>
+
+          {user?.role === "user" ? (
+            <button
+              onClick={() => navigate("/create-ticket")}
+              className="block w-full text-left text-gray-700 hover:text-black"
+            >
+              New Ticket
+            </button>
+          ) : null}
         </nav>
       </div>
 
       <div>
         <p className="text-sm text-gray-500 mb-4">
-          {user?.full_name}
+          {user?.full_name} · {user?.role}
         </p>
 
         <button

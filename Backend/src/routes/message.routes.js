@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const messageEmitter = require("../utils/messageEvents");
 const ticketRepository = require("../repositories/ticket.repository");
+const userRepository = require("../repositories/user.repository");
+const { verifyToken } = require("../utils/jwt");
 
 router.get("/stream/:id", async (req, res) => {
   const ticketId = req.params.id;
@@ -14,12 +15,16 @@ router.get("/stream/:id", async (req, res) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyToken(token);
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
   }
 
-  const user = decoded;
+  const user = await userRepository.findById(decoded.id);
+
+  if (!user || !user.is_active) {
+    return res.status(401).json({ message: "User session is no longer valid" });
+  }
 
   const ticket = await ticketRepository.getTicketById(ticketId);
 
@@ -41,6 +46,11 @@ router.get("/stream/:id", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
 
   res.flushHeaders();
+  res.write(`event: connected\ndata: ${JSON.stringify({ ticketId })}\n\n`);
+
+  const heartbeat = setInterval(() => {
+    res.write(`: keep-alive\n\n`);
+  }, 25000);
 
   const sendMessage = (data) => {
     if (String(data.ticketId) === String(ticketId)) {
@@ -51,6 +61,7 @@ router.get("/stream/:id", async (req, res) => {
   messageEmitter.on("newMessage", sendMessage);
 
   req.on("close", () => {
+    clearInterval(heartbeat);
     messageEmitter.removeListener("newMessage", sendMessage);
     res.end();
   });
