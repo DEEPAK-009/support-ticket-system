@@ -50,24 +50,34 @@ const AgentDashboard = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Visible</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "Open").length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">In Progress</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "In Progress").length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Awaiting User</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.filter((ticket) => ticket.status === "Awaiting User Response").length}</p>
-              </div>
-            </div>
+            <div className="grid grid-cols-3 gap-4">
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-center">
+    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+      Total
+    </p>
+    <p className="mt-2 text-3xl font-bold text-slate-950">
+      {tickets.length}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-center">
+    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+      Open
+    </p>
+    <p className="mt-2 text-3xl font-bold text-emerald-600">
+      {tickets.filter((ticket) => ticket.status === "Open").length}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-center">
+    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+      Closed
+    </p>
+    <p className="mt-2 text-3xl font-bold text-red-500">
+      {tickets.filter((ticket) => ticket.status === "Closed").length}
+    </p>
+  </div>
+</div>
           </div>
         </section>
 

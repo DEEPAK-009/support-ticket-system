@@ -157,7 +157,7 @@ const AdminDashboard = () => {
           )}
         </section>
 
-        <section className="space-y-4">
+        {/* <section className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">User Management</h2>
             <p className="text-sm text-slate-500">Review account access and activate or deactivate users with confirmation.</p>
@@ -210,7 +210,7 @@ const AdminDashboard = () => {
             totalPages={userTotalPages}
             onPageChange={setUserPage}
           />
-        </section>
+        </section> */}
 
         {userActionTarget ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4">
