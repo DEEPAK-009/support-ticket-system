@@ -2,16 +2,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { getTickets } from "../api/tickets";
+import TicketTable from "../components/TicketTable";
+import FilterBar from "../components/FilterBar";
+import Pagination from "../components/Pagination";
+import { Plus, Ticket, Sparkles, Inbox } from "lucide-react";
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     status: "",
     priority: "",
     sort: "created_at",
-    order: "desc"
+    order: "desc",
+    page: 1,
   });
 
   useEffect(() => {
@@ -20,6 +26,7 @@ const EmployeeDashboard = () => {
         setLoading(true);
         const res = await getTickets(filters);
         setTickets(res.data || []);
+        setTotalPages(res.totalPages || 1);
       } catch (error) {
         setTickets([]);
       } finally {
@@ -30,124 +37,87 @@ const EmployeeDashboard = () => {
     fetchTickets();
   }, [filters]);
 
+  const openCount = tickets.filter((t) => t.status === "Open").length;
+  const inProgressCount = tickets.filter((t) => t.status === "In Progress").length;
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <div className="space-y-6">
+        {/* Header Hero Section */}
+        <section className="rounded-2xl border border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-2">
-              My Workspace
-            </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">My Support Requests</h1>
-              <p className="text-sm text-slate-500 mt-3 max-w-2xl">
-              Track your tickets and create new requests when you need help.
-            </p>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-medium text-slate-400 mb-3">
+                <Ticket className="w-3 h-3 text-indigo-400" />
+                <span>CUSTOMER DESK</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+                My Support Requests
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
+                Track your active requests, view updates from technicians, or create new support tickets.
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Tickets</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{tickets.length}</p>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-center min-w-[90px]">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono">
+                  Total
+                </p>
+                <p className="mt-1 text-xl font-bold text-white">
+                  {tickets.length}
+                </p>
               </div>
-              <button
-                onClick={() => navigate("/create-ticket")}
-                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-white hover:bg-slate-800 transition-colors"
-              >
-                Create Ticket
-              </button>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-center min-w-[90px]">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono">
+                  Active
+                </p>
+                <p className="mt-1 text-xl font-bold text-emerald-400">
+                  {openCount + inProgressCount}
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap gap-3">
-          <select
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          >
-            <option value="">All Statuses</option>
-            <option value="Open">Open</option>
-            <option value="Assigned">Assigned</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Awaiting User Response">Awaiting User Response</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
-          </select>
+        {/* Filter Controls */}
+        <FilterBar filters={filters} setFilters={setFilters} />
 
-          <select
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-            value={filters.priority}
-            onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-          >
-            <option value="">All Priorities</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
-
-          <select
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-            value={filters.order}
-            onChange={(e) =>
-              setFilters((prev) => ({
-                ...prev,
-                sort: "created_at",
-                order: e.target.value
-              }))
-            }
-          >
-            <option value="desc">Newest First</option>
-            <option value="asc">Oldest First</option>
-          </select>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-3 font-medium text-slate-600">ID</th>
-                <th className="px-6 py-3 font-medium text-slate-600">Title</th>
-                <th className="px-6 py-3 font-medium text-slate-600">Status</th>
-                <th className="px-6 py-3 font-medium text-slate-600">Priority</th>
-                <th className="px-6 py-3 font-medium text-slate-600">Assigned To</th>
-                <th className="px-6 py-3 font-medium text-slate-600">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-slate-500">
-                    Loading tickets...
-                  </td>
-                </tr>
-              ) : tickets.length > 0 ? (
-                tickets.map((ticket) => (
-                  <tr
-                    key={ticket.id}
-                    className="hover:bg-slate-50 cursor-pointer"
-                    onClick={() => navigate(`/tickets/${ticket.id}`)}
-                  >
-                    <td className="px-6 py-4 text-slate-600">{ticket.id}</td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{ticket.title}</td>
-                    <td className="px-6 py-4 text-slate-600">{ticket.status}</td>
-                    <td className="px-6 py-4 text-slate-600">{ticket.priority}</td>
-                    <td className="px-6 py-4 text-slate-600">{ticket.assigned_to_name || "Unassigned"}</td>
-                    <td className="px-6 py-4 text-slate-500">
-                      {new Date(ticket.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-slate-500">
-                    No tickets found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Tickets Queue View */}
+        {loading ? (
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-12 text-center text-slate-400 text-sm">
+            <div className="w-8 h-8 mx-auto mb-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <span>Loading support requests...</span>
+          </div>
+        ) : tickets.length > 0 ? (
+          <>
+            <TicketTable tickets={tickets} showAssignee />
+            <Pagination
+              currentPage={filters.page}
+              totalPages={totalPages}
+              onPageChange={(page) =>
+                setFilters((prev) => ({ ...prev, page }))
+              }
+            />
+          </>
+        ) : (
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-12 text-center">
+            <Inbox className="w-10 h-10 mx-auto text-slate-600 mb-3" />
+            <h3 className="text-sm font-semibold text-slate-200">
+              No tickets found
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              You haven't opened any support requests yet or no tickets match the applied filters.
+            </p>
+            <button
+              onClick={() => navigate("/create-ticket")}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 px-4 py-2 text-xs font-medium text-slate-200 transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create your first ticket</span>
+            </button>
+          </div>
+        )}
       </div>
     </Layout>
   );

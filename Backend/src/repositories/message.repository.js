@@ -8,7 +8,7 @@ const createMessage = async (ticketId, senderId, messageText) => {
   );
 
   const [rows] = await pool.query(
-    `SELECT tm.id, tm.message_text, tm.created_at,
+    `SELECT tm.id, tm.sender_id, tm.message_text, tm.created_at,
             u.full_name, u.role
      FROM ticket_messages tm
      JOIN users u ON tm.sender_id = u.id

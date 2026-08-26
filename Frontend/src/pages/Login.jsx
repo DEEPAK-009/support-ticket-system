@@ -7,6 +7,22 @@ import {
   adminCreateUser,
   getDepartments,
 } from "../api/auth";
+import {
+  Ticket,
+  Lock,
+  Mail,
+  User,
+  Shield,
+  ShieldCheck,
+  Building2,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  KeyRound,
+  Headphones,
+  UserCheck,
+} from "lucide-react";
 
 const Login = () => {
   // Mode: 'login' | 'admin-auth' | 'create-user'
@@ -96,7 +112,7 @@ const Login = () => {
       login(data);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setSubmitting(false);
     }
@@ -116,7 +132,7 @@ const Login = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Admin verification failed. Please check the password."
+          "Invalid administrator password. Access denied."
       );
     } finally {
       setSubmitting(false);
@@ -181,235 +197,267 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex items-center justify-center px-4 py-12 relative overflow-hidden selection:bg-indigo-500 selection:text-white">
+      {/* Subtle Background Glow Elements (Linear style) */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-indigo-600/15 via-violet-600/10 to-transparent blur-3xl pointer-events-none rounded-full" />
+      <div className="absolute -bottom-10 right-1/4 w-[400px] h-[300px] bg-indigo-900/10 blur-3xl pointer-events-none rounded-full" />
+
       <div
         className={`w-full ${
           viewMode === "create-user" ? "max-w-lg" : "max-w-md"
-        } bg-white p-8 rounded-2xl shadow-sm border border-slate-200 transition-all`}
+        } relative z-10`}
       >
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 mb-3">
-          Support Ticket System
-        </p>
+        {/* Top Brand Tag */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/90 text-xs font-medium text-slate-300 shadow-sm backdrop-blur-md mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <Ticket className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="tracking-wide">Support Desk · v2.0</span>
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            {viewMode === "login"
+              ? "Welcome back"
+              : viewMode === "admin-auth"
+              ? "Admin Verification"
+              : "Register New Account"}
+          </h1>
+          <p className="text-sm text-slate-400 mt-2 max-w-sm mx-auto">
+            {viewMode === "login"
+              ? "Sign in to access your dashboard, tickets, and workflow."
+              : viewMode === "admin-auth"
+              ? "Enter your administrator master password to unlock account registration."
+              : "Create a user, support agent, or admin account directly in MySQL."}
+          </p>
+        </div>
 
-        {/* View 1: Standard Login */}
-        {viewMode === "login" && (
-          <>
-            <h2 className="text-2xl font-semibold mb-2 text-slate-900">
-              Sign in
-            </h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Access your dashboard, tickets, and support workflow.
-            </p>
-
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600 text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700 text-sm">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-slate-900 text-white py-2.5 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {submitting ? "Signing in..." : "Login"}
-              </button>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-sm">
-              <span className="text-slate-500">Administrator access?</span>
-              <button
-                type="button"
-                onClick={handleSwitchToAdminAuth}
-                className="font-medium text-slate-900 hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                Add User
-              </button>
+        {/* Card Container */}
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-7 sm:p-8 shadow-2xl shadow-black/60 transition-all duration-300">
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs text-rose-300 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
-          </>
-        )}
+          )}
 
-        {/* View 2: Admin Password Verification */}
-        {viewMode === "admin-auth" && (
-          <>
-            <h2 className="text-2xl font-semibold mb-2 text-slate-900">
-              Admin Verification
-            </h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Enter administrator password to unlock user creation.
-            </p>
+          {/* Success Alert */}
+          {success && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>{success}</span>
+            </div>
+          )}
 
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600 text-sm">
-                {error}
+          {/* View 1: Standard Login Form */}
+          {viewMode === "login" && (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    placeholder="you@company.com"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            )}
 
-            <form onSubmit={handleAdminAuthSubmit} className="space-y-4">
-              <input
-                type="password"
-                placeholder="Administrator Password"
-                className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                required
-                autoFocus
-              />
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-slate-900 text-white py-2.5 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-medium py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm"
               >
-                {submitting ? "Verifying..." : "Verify Admin"}
+                {submitting ? (
+                  "Signing in..."
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+
+              <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Need to create accounts?</span>
+                <button
+                  type="button"
+                  onClick={handleSwitchToAdminAuth}
+                  className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin: Add User</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* View 2: Admin Password Verification */}
+          {viewMode === "admin-auth" && (
+            <form onSubmit={handleAdminAuthSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Administrator Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="password"
+                    placeholder="Enter admin password"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 pl-10 pr-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  Protected by secure backend verification.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-medium py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm"
+              >
+                {submitting ? (
+                  "Verifying Admin..."
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Verify & Continue</span>
+                  </>
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={handleSwitchToLogin}
-                className="w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                className="w-full border border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-white py-2.5 rounded-xl transition-all cursor-pointer text-xs font-medium"
               >
-                Cancel & Back to Sign In
+                Back to Sign In
               </button>
             </form>
-          </>
-        )}
+          )}
 
-        {/* View 3: Create User Form */}
-        {viewMode === "create-user" && (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-2xl font-semibold text-slate-900">
-                Create Account
-              </h2>
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
-                Admin Verified
-              </span>
-            </div>
-            <p className="text-sm text-slate-500 mb-6">
-              Register a new customer, support agent, or administrator in the
-              database.
-            </p>
-
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600 text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700 text-sm">
-                {success}
-              </div>
-            )}
-
+          {/* View 3: Create User Form (Linear Multi-Role) */}
+          {viewMode === "create-user" && (
             <form onSubmit={handleCreateUserSubmit} className="space-y-4">
-              {/* Role Selection */}
+              {/* Role Segmented Selector */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Account Role
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Select Role
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setRole("user")}
-                    className={`py-2 px-3 text-xs font-medium rounded-lg border text-center transition-all cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                       role === "user"
-                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
                     }`}
                   >
-                    User / Requester
+                    <User className="w-3.5 h-3.5" />
+                    <span>User</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setRole("agent")}
-                    className={`py-2 px-3 text-xs font-medium rounded-lg border text-center transition-all cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                       role === "agent"
-                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
                     }`}
                   >
-                    Support Agent
+                    <Headphones className="w-3.5 h-3.5" />
+                    <span>Agent</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setRole("admin")}
-                    className={`py-2 px-3 text-xs font-medium rounded-lg border text-center transition-all cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                       role === "admin"
-                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
                     }`}
                   >
-                    Administrator
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Admin</span>
                   </button>
                 </div>
               </div>
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Full Name <span className="text-red-500">*</span>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Full Name <span className="text-rose-400">*</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Aarav Khanna"
-                  className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Aarav Khanna"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 pl-10 pr-3.5 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
 
-              {/* Email */}
+              {/* Email Address */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Email Address <span className="text-red-500">*</span>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Email Address <span className="text-rose-400">*</span>
                 </label>
-                <input
-                  type="email"
-                  placeholder="name@company.com"
-                  className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    placeholder="user@company.com"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 pl-10 pr-3.5 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
 
               {/* Conditional Agent Fields: Department & Seniority */}
               {role === "agent" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Department <span className="text-red-500">*</span>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                      Department <span className="text-rose-400">*</span>
                     </label>
                     <select
-                      className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       value={departmentId}
                       onChange={(e) => setDepartmentId(e.target.value)}
                       required
@@ -424,15 +472,15 @@ const Login = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
                       Seniority Level
                     </label>
                     <select
-                      className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       value={level}
                       onChange={(e) => setLevel(e.target.value)}
                     >
-                      <option value="">Standard (No Level)</option>
+                      <option value="">Standard (None)</option>
                       <option value="junior">Junior</option>
                       <option value="mid">Mid-Level</option>
                       <option value="senior">Senior</option>
@@ -444,13 +492,13 @@ const Login = () => {
               {/* Optional Employee ID */}
               {(role === "agent" || role === "admin") && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Employee ID <span className="text-slate-400 font-normal">(Optional)</span>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Employee ID <span className="text-slate-500 font-normal">(Optional)</span>
                   </label>
                   <input
                     type="text"
                     placeholder={role === "agent" ? "e.g. AGT-201" : "e.g. ADM-301"}
-                    className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
                   />
@@ -460,13 +508,13 @@ const Login = () => {
               {/* Password Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Password <span className="text-red-500">*</span>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Password <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="password"
-                    placeholder="Min 6 characters"
-                    className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
+                    placeholder="Min 6 chars"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
                     required
@@ -474,13 +522,13 @@ const Login = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Confirm Password <span className="text-red-500">*</span>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Confirm Password <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="password"
                     placeholder="Repeat password"
-                    className="w-full border border-slate-300 px-3 py-2 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -491,21 +539,33 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-slate-900 text-white py-2.5 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer font-medium text-sm mt-2"
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-medium py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm"
               >
-                {submitting ? "Creating Account..." : `Create ${role.charAt(0).toUpperCase() + role.slice(1)} Account`}
+                {submitting ? (
+                  "Creating Account..."
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4" />
+                    <span>Create {role.charAt(0).toUpperCase() + role.slice(1)} Account</span>
+                  </>
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={handleSwitchToLogin}
-                className="w-full border border-slate-300 text-slate-700 py-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer text-sm font-medium"
+                className="w-full border border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-white py-2.5 rounded-xl transition-all cursor-pointer text-xs font-medium"
               >
                 Back to Sign In
               </button>
             </form>
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Bottom Footer Note */}
+        <p className="text-center text-xs text-slate-500 mt-6">
+          Encrypted sessions with role-based MySQL access control.
+        </p>
       </div>
     </div>
   );

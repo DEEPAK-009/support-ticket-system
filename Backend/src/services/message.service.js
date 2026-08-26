@@ -29,6 +29,11 @@ const createMessage = async (ticketId, messageText, user) => {
     throw new AppError('Forbidden: You cannot message this ticket', 403);
   }
 
+  // Chat is locked until the agent accepts and starts working on the ticket
+  if (['Open', 'Assigned'].includes(ticket.status)) {
+    throw new AppError('Chat will unlock once the assigned agent accepts and starts working on this ticket', 400);
+  }
+
   const createdMessage = await messageRepository.createMessage(
   ticketId,
   user.id,
