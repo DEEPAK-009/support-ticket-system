@@ -57,9 +57,53 @@ const updatePassword = async (userId, hashedPassword) => {
 };
 
 
+const createUser = async ({
+  full_name = null,
+  email,
+  password_hash,
+  role = 'user',
+  department_id = null,
+  level = null,
+  employee_id = null,
+  is_active = 1
+}) => {
+  const name = full_name || email.split('@')[0];
+  const [result] = await pool.query(
+    'INSERT INTO users (full_name, email, password_hash, role, department_id, level, employee_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      name,
+      email,
+      password_hash,
+      role,
+      department_id ? parseInt(department_id) : null,
+      level || null,
+      employee_id || null,
+      is_active
+    ]
+  );
+
+  return {
+    id: result.insertId,
+    full_name: name,
+    email,
+    role,
+    department_id: department_id ? parseInt(department_id) : null,
+    level: level || null,
+    employee_id: employee_id || null,
+    is_active
+  };
+};
+
+const getAllDepartments = async () => {
+  const [rows] = await pool.query('SELECT id, name FROM departments ORDER BY name ASC');
+  return rows;
+};
+
 module.exports = {
   findByEmail,
   findById,
+  createUser,
+  getAllDepartments,
   updateResetToken,
   updatePassword,
   findPasswordByUserId,

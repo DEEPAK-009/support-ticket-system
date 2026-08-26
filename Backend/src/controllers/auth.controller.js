@@ -73,10 +73,67 @@ const getCurrentUser = async (req, res, next) => {
   }
 };
 
+const verifyAdminPassword = async (req, res, next) => {
+  try {
+    const { adminPassword } = req.body;
+    const result = await authService.verifyAdminPassword(adminPassword);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const adminCreateUser = async (req, res, next) => {
+  try {
+    const {
+      email,
+      password,
+      full_name,
+      role,
+      department_id,
+      level,
+      employee_id,
+      adminToken,
+      adminPassword
+    } = req.body;
+    // Also check Bearer header if passed as fallback
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+    const result = await authService.adminCreateUser({
+      email,
+      password,
+      full_name,
+      role,
+      department_id,
+      level,
+      employee_id,
+      adminToken: adminToken || bearerToken,
+      adminPassword
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDepartments = async (req, res, next) => {
+  try {
+    const departments = await authService.getDepartments();
+    res.status(200).json(departments);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   login,
   forgotPassword,
   resetPassword,
   changePassword,
-  getCurrentUser
+  getCurrentUser,
+  verifyAdminPassword,
+  adminCreateUser,
+  getDepartments
 };
